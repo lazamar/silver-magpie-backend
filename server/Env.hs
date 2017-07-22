@@ -46,7 +46,7 @@ createEnviromentVariables wholeEnv = do
 
         toEnvironment "production" = Right Production
         toEnvironment "development" = Right Development
-        toEnvironment v = Left $ "Invalid development environment: \"" ++ v ++ "\""
+        toEnvironment v = Left $ "Invalid environment value: \"" ++ v ++ "\""
 
 loadEnvironment :: IO (Either String EnvironmentVariables)
 loadEnvironment = do

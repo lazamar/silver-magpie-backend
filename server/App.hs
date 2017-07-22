@@ -7,7 +7,7 @@ module App (runApp) where
 import Api (Api)
 import Network.Wai.Handler.Warp (run)
 import Servant ((:<|>) ((:<|>)), Application, Proxy (Proxy), Raw, Server, serve)
-import Servant.Utils.StaticFiles (serveDirectoryWebApp)
+import Servant.Utils.StaticFiles (serveDirectoryFileServer)
 import Types (EnvironmentVariables (port), InfoMsg (InfoMsg))
 
 
@@ -31,7 +31,7 @@ server =
 
 serveAssets :: Server Raw
 serveAssets =
-    serveDirectoryWebApp "./static/build"
+    serveDirectoryFileServer "./static/build"
 
 apiServer :: Server Api
 apiServer =
