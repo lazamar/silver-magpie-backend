@@ -4,6 +4,7 @@
 module Types where
 
 import Data.Aeson.Types (ToJSON)
+import Data.Text (Text)
 import GHC.Generics (Generic)
 
 data Environment
@@ -15,9 +16,10 @@ data Environment
 data EnvironmentVariables = EnvironmentVariables
     { environment   :: Environment
     , port          :: Int
-    , dbName        :: String
-    , twitterKey    :: String
-    , twitterSecret :: String
+    , dbName        :: Text
+    , dbUrl         :: Text
+    , twitterKey    :: Text
+    , twitterSecret :: Text
     }
     deriving (Show)
 
