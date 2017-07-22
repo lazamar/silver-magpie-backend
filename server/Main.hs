@@ -2,8 +2,8 @@
 
 module Main where
 
+import App (runApp)
 import Data.List (lookup)
-import Server (runServer)
 import System.Environment (getEnvironment)
 import Text.Read (readMaybe)
 import Types
@@ -58,5 +58,4 @@ main = do
         Left err ->
             putStrLn err
         Right env ->
-            putStrLn "All OK"
-            -- runServer env
+            runApp env
