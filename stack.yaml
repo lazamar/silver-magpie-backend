@@ -44,7 +44,6 @@ extra-deps:
     - servant-server-0.11
     - errors-2.2.1
     - mongoDB-2.3.0
-
 # Override default flag values for local packages and extra-deps
 flags: {}
 

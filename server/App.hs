@@ -22,10 +22,10 @@ import Types (DBActionRunner, EnvironmentVariables (dbName, dbUrl, port))
 
 runApp :: EnvironmentVariables -> IO ()
 runApp env = do
-    putStrLn $ "Running server on port " ++ (show $ port env)
+    putStrLn $ "Running server on port " ++ show (port env)
     pipe <- getDbPipe (dbUrl env)
     let dbRunner = generateRunner pipe (dbName env)
-        serverApp = app dbRunner
+        serverApp = app env dbRunner
         portName = port env
     run portName serverApp
 
@@ -36,10 +36,10 @@ getDbPipe databaseUrl =
 
 generateRunner :: Pipe -> Query.Database -> DBActionRunner
 generateRunner pipe database =
-    \action -> access pipe master database action
+    access pipe master database
 
-app :: DBActionRunner -> Application
-app dbRunner = serve withAssetsProxy $ server dbRunner
+app :: EnvironmentVariables -> DBActionRunner -> Application
+app env dbRunner = serve withAssetsProxy $ server env dbRunner
 
 
 -------------------------------------------------------------------------------
@@ -52,9 +52,9 @@ withAssetsProxy :: Proxy WithAssets
 withAssetsProxy =
         Proxy
 
-server :: DBActionRunner -> Server WithAssets
-server dbRunner =
-    apiServer dbRunner :<|> serveAssets
+server :: EnvironmentVariables -> DBActionRunner -> Server WithAssets
+server env dbRunner =
+    apiServer env dbRunner :<|> serveAssets
 
 serveAssets :: Server Raw
 serveAssets =
