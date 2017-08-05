@@ -20,6 +20,34 @@ import Servant.Utils.StaticFiles (serveDirectoryFileServer)
 import Types (EnvironmentVariables (dbName, dbUrl, port), InfoMsg (InfoMsg))
 
 -------------------------------------------------------------------------------
+--                               App
+-------------------------------------------------------------------------------
+
+type DBActionRunner = (forall a. Action IO a -> IO a)
+
+runApp :: EnvironmentVariables -> IO ()
+runApp env = do
+    putStrLn $ "Running server on port " ++ (show $ port env)
+    pipe <- getDbPipe (dbUrl env)
+    let dbRunner = generateRunner pipe (dbName env)
+        serverApp = app dbRunner
+        portName = port env
+    run portName serverApp
+
+
+getDbPipe :: Text -> IO Pipe
+getDbPipe databaseUrl =
+    connect $readHostPort $ T.unpack databaseUrl
+
+generateRunner :: Pipe -> Query.Database -> DBActionRunner
+generateRunner pipe database =
+    \action -> access pipe master database action
+
+app :: DBActionRunner -> Application
+app dbRunner = serve withAssetsProxy $ server dbRunner
+
+
+-------------------------------------------------------------------------------
 --                               Routes
 -------------------------------------------------------------------------------
 
@@ -29,11 +57,9 @@ withAssetsProxy :: Proxy WithAssets
 withAssetsProxy =
         Proxy
 
-server :: IO (Server WithAssets)
-server = do
-    pipe <- liftIO $ connect $ readHostPort $ "127.0.0.1"
-    let dbDriver = runDbAction pipe "silver-magpie"
-    return $ apiServer dbDriver :<|> serveAssets
+server :: DBActionRunner -> Server WithAssets
+server dbRunner =
+    apiServer dbRunner :<|> serveAssets
 
 -------------------------------------------------------------------------------
 --                               Handlers
@@ -50,39 +76,12 @@ getFindOne = Query.findOne $ select [] "credentials"
 getCursor :: Action IO (Query.Cursor)
 getCursor = Query.find $ select [] "credentials"
 
-apiServer :: DBDriver -> Handler InfoMsg
+apiServer :: DBActionRunner -> Handler InfoMsg
 apiServer dbDriver = do
-    _ <- liftIO $ dbDriver getFindOne
+    theOne <- liftIO $ dbDriver getFindOne
+    liftIO $ putStrLn (show theOne)
     _ <- liftIO $ dbDriver getCursor
     -- liftIO $ putStrLn (show v)
     -- liftIO $ putStrLn (show c)
     -- _ <- liftIO $ rest cursor
-    return $ InfoMsg (show "asdf")
-
-
--------------------------------------------------------------------------------
---                               App
--------------------------------------------------------------------------------
-
--- generateDBAccess :: Text -> Text -> IO (Action IO a -> IO a)
--- generateDBAccess databaseUrl databaseName = do
---     pipe <- connect $ readHostPort $ T.unpack databaseUrl
---     return $ access pipe master databaseName
-
-
-type DBDriver = (forall a. Action IO a -> IO a)
-
-runDbAction :: Pipe -> Query.Database -> DBDriver
-runDbAction pipe dbName action =
-    access pipe master dbName action
-
--- App
-
-app :: IO Application
-app = serve withAssetsProxy <$> server
-
-runApp :: EnvironmentVariables -> IO ()
-runApp env = do
-    putStrLn $ "Running server on port " ++ (show $ port env)
-    v <- app
-    run (port env) v
+    return $ InfoMsg "asdf"
