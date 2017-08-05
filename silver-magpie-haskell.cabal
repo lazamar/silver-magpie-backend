@@ -23,6 +23,7 @@ executable silver-magpie
                      , Env
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base
+                     , bson
                      , aeson
                      , servant
                      , servant-server
