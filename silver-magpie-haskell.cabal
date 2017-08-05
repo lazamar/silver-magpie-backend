@@ -31,6 +31,8 @@ executable silver-magpie
                      , warp
                      , text
                      , mongoDB
+                     , either
+                     , yaml
   default-language:    Haskell2010
 
 test-suite silver-magpie-haskell-test

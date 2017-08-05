@@ -3,14 +3,19 @@
 module Main where
 
 import App (runApp)
-import Data.Text as T
 import Env (loadEnvironment)
+import Types (EnvironmentVariables (environment))
 
 main :: IO ()
 main = do
-    mEnv <- loadEnvironment
-    case mEnv of
+    eitherEnv <- loadEnvironment
+    case eitherEnv of
         Left err ->
-            putStrLn $ T.unpack err
+            putStrLn err
         Right env ->
-            runApp env
+            do
+                putStrLn
+                    $ (++) "Running on environment: "
+                    $ show
+                    $ environment env
+                runApp env

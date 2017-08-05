@@ -3,15 +3,16 @@
 
 module Types where
 
-import Data.Aeson.Types (ToJSON)
+import Data.Aeson.Types (FromJSON, ToJSON)
 import Data.Text (Text)
 import GHC.Generics (Generic)
 
 data Environment
     = Development
     | Production
-    deriving (Show)
+    deriving (Show, Generic)
 
+instance FromJSON Environment
 
 data EnvironmentVariables = EnvironmentVariables
     { environment   :: Environment
@@ -21,8 +22,9 @@ data EnvironmentVariables = EnvironmentVariables
     , twitterKey    :: Text
     , twitterSecret :: Text
     }
-    deriving (Show)
+    deriving (Show, Generic)
 
+instance FromJSON EnvironmentVariables
 
 -- API Types
 
