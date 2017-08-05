@@ -5,25 +5,20 @@
 
 module App (runApp) where
 
-import Api (Api)
-import Control.Monad.IO.Class (liftIO)
-import Data.Bson (Document)
+import Api (Api, apiServer)
 import Data.Text (Text)
 import qualified Data.Text as T
-import Database.MongoDB
-    (Action, Pipe, access, connect, master, readHostPort, select)
+import Database.MongoDB (Pipe, access, connect, master, readHostPort)
 import qualified Database.MongoDB.Query as Query
 import Network.Wai.Handler.Warp (run)
-import Servant
-    ((:<|>) ((:<|>)), Application, Handler, Proxy (Proxy), Raw, Server, serve)
+import Servant ((:<|>) ((:<|>)), Application, Proxy (Proxy), Raw, Server, serve)
 import Servant.Utils.StaticFiles (serveDirectoryFileServer)
-import Types (EnvironmentVariables (dbName, dbUrl, port), InfoMsg (InfoMsg))
+import Types (DBActionRunner, EnvironmentVariables (dbName, dbUrl, port))
 
 -------------------------------------------------------------------------------
 --                               App
 -------------------------------------------------------------------------------
 
-type DBActionRunner = (forall a. Action IO a -> IO a)
 
 runApp :: EnvironmentVariables -> IO ()
 runApp env = do
@@ -61,27 +56,6 @@ server :: DBActionRunner -> Server WithAssets
 server dbRunner =
     apiServer dbRunner :<|> serveAssets
 
--------------------------------------------------------------------------------
---                               Handlers
--------------------------------------------------------------------------------
-
 serveAssets :: Server Raw
 serveAssets =
     serveDirectoryFileServer "./static/build"
-
-
-getFindOne :: Action IO (Maybe Document)
-getFindOne = Query.findOne $ select [] "credentials"
-
-getCursor :: Action IO (Query.Cursor)
-getCursor = Query.find $ select [] "credentials"
-
-apiServer :: DBActionRunner -> Handler InfoMsg
-apiServer dbDriver = do
-    theOne <- liftIO $ dbDriver getFindOne
-    liftIO $ putStrLn (show theOne)
-    _ <- liftIO $ dbDriver getCursor
-    -- liftIO $ putStrLn (show v)
-    -- liftIO $ putStrLn (show c)
-    -- _ <- liftIO $ rest cursor
-    return $ InfoMsg "asdf"
