@@ -31,26 +31,26 @@ import Web.Authenticate.OAuth as OAuth
 
 get ::  OAuth.OAuth -> DBActionRunner -> Manager -> Maybe String -> Handler AppAuth
 get oauth runDbAction manager mAppSessionId =
-    case mAppSessionId of
-        Nothing ->
+    let
+        authorise Nothing _ =
             throwError $ err400
                 { errBody = "No app_session_id provided" }
 
-        Just sId ->
-            do
-                credentials <- liftIO $ OAuth.getTemporaryCredential oauth manager
-                case oauthToken credentials of
-                    Nothing ->
-                        throwError $ err500
-                            { errBody = "Something unexpected happened.No OAuth token provided by API server." }
+        authorise _ Nothing =
+            throwError $ err500
+                { errBody = "Something unexpected happened.No OAuth token provided by API server." }
 
-                    Just token ->
-                        let
-                            auth = AppAuth sId token
-                            action = saveAppAuthorisation auth
-                        in
-                            liftIO (runDbAction action)
-                            >> authoriseWithToken token
+        authorise (Just sessionId) (Just token) =
+            let
+                auth = AppAuth sessionId token
+                action = saveAppAuthorisation auth
+            in
+                liftIO (runDbAction action)
+                >> authoriseWithToken token
+    in
+        do
+            credentials <- liftIO $ OAuth.getTemporaryCredential oauth manager
+            authorise mAppSessionId $ oauthToken credentials
 
 
 oauthToken :: Credential -> Maybe String
