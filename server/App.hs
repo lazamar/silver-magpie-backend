@@ -10,11 +10,14 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Database.MongoDB (Pipe, access, connect, master, readHostPort)
 import qualified Database.MongoDB.Query as Query
+import Network.HTTP.Client (Manager)
+import Network.HTTP.Client.TLS (newTlsManager)
 import Network.Wai.Handler.Warp (run)
 import Network.Wai.Middleware.Cors (simpleCors)
 import Servant ((:<|>) ((:<|>)), Application, Proxy (Proxy), Raw, Server, serve)
 import Servant.Utils.StaticFiles (serveDirectoryFileServer)
 import Types (DBActionRunner, EnvironmentVariables (dbName, dbUrl, port))
+
 -------------------------------------------------------------------------------
 --                               App
 -------------------------------------------------------------------------------
@@ -24,8 +27,9 @@ runApp :: EnvironmentVariables -> IO ()
 runApp env = do
     putStrLn $ "Running server on port " ++ show (port env)
     pipe <- getDbPipe (dbUrl env)
+    manager <- newTlsManager
     let dbRunner = generateRunner pipe (dbName env)
-        serverApp = app env dbRunner
+        serverApp = app env dbRunner manager
         portName = port env
     run portName serverApp
 
@@ -38,8 +42,9 @@ generateRunner :: Pipe -> Query.Database -> DBActionRunner
 generateRunner pipe database =
     access pipe master database
 
-app :: EnvironmentVariables -> DBActionRunner -> Application
-app env dbRunner = simpleCors $ serve withAssetsProxy $ server env dbRunner
+app :: EnvironmentVariables -> DBActionRunner -> Manager -> Application
+app env dbRunner manager =
+    simpleCors $ serve withAssetsProxy $ server env dbRunner manager
 
 
 -------------------------------------------------------------------------------
@@ -52,9 +57,9 @@ withAssetsProxy :: Proxy WithAssets
 withAssetsProxy =
         Proxy
 
-server :: EnvironmentVariables -> DBActionRunner -> Server WithAssets
-server env dbRunner =
-    apiServer env dbRunner :<|> serveAssets
+server :: EnvironmentVariables -> DBActionRunner -> Manager -> Server WithAssets
+server env dbRunner manager =
+    apiServer env dbRunner manager :<|> serveAssets
 
 serveAssets :: Server Raw
 serveAssets =

@@ -9,10 +9,12 @@ import Control.Monad.IO.Class (liftIO)
 import Data.Bson (Document)
 import Data.Text as T
 import Data.Text.Encoding (encodeUtf8)
-
 import Database.MongoDB (Action, rest, select)
 import qualified Database.MongoDB.Query as Query
-import Network.HTTP.Client.TLS (newTlsManager)
+import Network.HTTP.Client (Manager)
+import Routes.AppGetAccess
+import Routes.SaveCredentials
+import Routes.SignIn
 import Servant
     ( (:<|>) ((:<|>))
     , (:>)
@@ -33,7 +35,6 @@ import Types
     , twitterSecret
     )
 import Web.Authenticate.OAuth as OAuth
-
 -------------------------------------------------------------------------------
 --                               API
 -------------------------------------------------------------------------------
@@ -41,59 +42,19 @@ import Web.Authenticate.OAuth as OAuth
 type Api =  "sign-in" :> QueryParam "app_session_id" String :> Get '[JSON] InfoMsg
     :<|>    "save-credentials" :> QueryParam "oauth_token" String :> Get '[JSON] InfoMsg
     :<|>    "app-get-access" :> Get '[JSON] InfoMsg
-    :<|>    "test2" :> Get '[JSON] InfoMsg
 
 -------------------------------------------------------------------------------
 --                               Handlers
 -------------------------------------------------------------------------------
 
-apiServer :: EnvironmentVariables -> DBActionRunner -> Server Api
-apiServer env runDbAction =
-            signIn env runDbAction
-    :<|>    saveCreadentials env runDbAction
-    :<|>    appGetAccess
-    :<|>    test2 runDbAction
-
-
-getFindOne :: Action IO (Maybe Document)
-getFindOne = Query.findOne $ select [] "credentials"
-
-
-getCursor :: Action IO Query.Cursor
-getCursor = Query.find $ select [] "credentials"
-
-
-signIn ::  EnvironmentVariables -> DBActionRunner -> Maybe String -> Handler InfoMsg
-signIn env _ mAppSessionId =
-    liftIO $ do
-        let
-            oAuth = twitterOAuth env
-            msg = "app_session_id = " ++ show mAppSessionId
-        manager <- newTlsManager
-        credentials <- OAuth.getTemporaryCredential oAuth manager
-        print $ "Credentials found" ++ show credentials
-        print msg
-        return $ InfoMsg msg
-
-
-saveCreadentials :: EnvironmentVariables -> DBActionRunner -> Maybe String -> Handler InfoMsg
-saveCreadentials env _ mOAuthAccessToken =
-    liftIO $ do
-        print $ show $ twitterOAuth env
-        print $ T.unpack "save-credentials called!!!"
-        return $ InfoMsg  (show mOAuthAccessToken)
-
-appGetAccess :: Handler InfoMsg
-appGetAccess =
-    throwError err401
-
-test2 :: DBActionRunner -> Handler InfoMsg
-test2 runDbAction = liftIO $ do
-    theOne <- runDbAction getFindOne
-    print $ show theOne
-    cursor <- runDbAction getCursor
-    vals <- runDbAction $ rest cursor
-    return $ InfoMsg  (show vals)
+apiServer :: EnvironmentVariables -> DBActionRunner ->  Manager -> Server Api
+apiServer env runDbAction manager =
+    let
+        oauth = twitterOAuth env
+    in
+            Routes.SignIn.get oauth runDbAction manager
+    :<|>    Routes.SaveCredentials.get oauth runDbAction
+    :<|>    Routes.AppGetAccess.get
 
 
 twitterOAuth :: EnvironmentVariables -> OAuth.OAuth
