@@ -4,11 +4,22 @@
 
 module Types where
 
-import Data.Aeson.Types (FromJSON, ToJSON)
+import Data.Aeson.Types
+    ( FromJSON
+    , ToJSON
+    , object
+    , pairs
+    , parseJSON
+    , toEncoding
+    , toJSON
+    , withObject
+    , (.:)
+    , (.=)
+    )
+import Data.Monoid ((<>))
 import Data.Text (Text)
 import Database.MongoDB (Action)
 import GHC.Generics (Generic)
-
 data Environment
     = Development
     | Production
@@ -38,3 +49,31 @@ newtype InfoMsg = InfoMsg { msg :: String }
 instance ToJSON InfoMsg
 
 type DBActionRunner = (forall a. Action IO a -> IO a)
+
+-- Mongo Types
+
+data AppAuth = AppAuth
+    { appSessionId       :: Text
+    , accessRequestToken :: Text
+    }
+    deriving (Show)
+
+instance FromJSON AppAuth where
+    parseJSON = withObject "AppAuth" $ \v -> AppAuth
+        <$> v .: "app_session_id"
+        <*> v .: "access_request_token"
+
+instance ToJSON AppAuth where
+    -- this generates a Value
+    toJSON (AppAuth sId aToken) =
+        object
+            [ "app_session_id" .= sId
+            , "access_request_token" .= aToken
+            ]
+
+    -- this encodes directly to a bytestring Builder
+    toEncoding (AppAuth sId aToken) =
+        pairs
+            ( "app_session_id" .= sId
+            <> "access_request_token" .= aToken
+            )
