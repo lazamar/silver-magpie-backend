@@ -19,6 +19,7 @@ instance FromJSON Environment
 data EnvironmentVariables = EnvironmentVariables
     { environment   :: Environment
     , port          :: Int
+    , domain        :: Text
     , dbName        :: Text
     , dbUrl         :: Text
     , twitterKey    :: Text

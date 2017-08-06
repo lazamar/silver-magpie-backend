@@ -11,10 +11,10 @@ import qualified Data.Text as T
 import Database.MongoDB (Pipe, access, connect, master, readHostPort)
 import qualified Database.MongoDB.Query as Query
 import Network.Wai.Handler.Warp (run)
+import Network.Wai.Middleware.Cors (simpleCors)
 import Servant ((:<|>) ((:<|>)), Application, Proxy (Proxy), Raw, Server, serve)
 import Servant.Utils.StaticFiles (serveDirectoryFileServer)
 import Types (DBActionRunner, EnvironmentVariables (dbName, dbUrl, port))
-
 -------------------------------------------------------------------------------
 --                               App
 -------------------------------------------------------------------------------
@@ -39,7 +39,7 @@ generateRunner pipe database =
     access pipe master database
 
 app :: EnvironmentVariables -> DBActionRunner -> Application
-app env dbRunner = serve withAssetsProxy $ server env dbRunner
+app env dbRunner = simpleCors $ serve withAssetsProxy $ server env dbRunner
 
 
 -------------------------------------------------------------------------------

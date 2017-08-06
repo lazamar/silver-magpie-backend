@@ -33,6 +33,9 @@ executable silver-magpie
                      , mongoDB
                      , either
                      , yaml
+                     , authenticate-oauth
+                     , http-client-tls
+                     , wai-cors
   default-language:    Haskell2010
 
 test-suite silver-magpie-haskell-test

@@ -2,9 +2,10 @@
 
 module Main where
 
+-- import App (runApp)
 import App (runApp)
 import Env (loadEnvironment)
-import Types (EnvironmentVariables (environment))
+import Types (environment)
 
 main :: IO ()
 main = do
