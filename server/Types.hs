@@ -53,8 +53,8 @@ type DBActionRunner = (forall a. Action IO a -> IO a)
 -- Mongo Types
 
 data AppAuth = AppAuth
-    { appSessionId       :: Text
-    , accessRequestToken :: Text
+    { appSessionId       :: String
+    , accessRequestToken :: String
     }
     deriving (Show)
 

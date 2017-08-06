@@ -33,7 +33,6 @@ runApp env = do
         portName = port env
     run portName serverApp
 
-
 getDbPipe :: Text -> IO Pipe
 getDbPipe databaseUrl =
     connect $readHostPort $ T.unpack databaseUrl
@@ -41,6 +40,7 @@ getDbPipe databaseUrl =
 generateRunner :: Pipe -> Query.Database -> DBActionRunner
 generateRunner pipe database =
     access pipe master database
+
 
 app :: EnvironmentVariables -> DBActionRunner -> Manager -> Application
 app env dbRunner manager =

@@ -27,7 +27,8 @@ import Servant
     , throwError
     )
 import Types
-    ( DBActionRunner
+    ( AppAuth
+    , DBActionRunner
     , EnvironmentVariables
     , InfoMsg (InfoMsg)
     , domain
@@ -39,7 +40,7 @@ import Web.Authenticate.OAuth as OAuth
 --                               API
 -------------------------------------------------------------------------------
 
-type Api =  "sign-in" :> QueryParam "app_session_id" String :> Get '[JSON] InfoMsg
+type Api =  "sign-in" :> QueryParam "app_session_id" String :> Get '[JSON] AppAuth
     :<|>    "save-credentials" :> QueryParam "oauth_token" String :> Get '[JSON] InfoMsg
     :<|>    "app-get-access" :> Get '[JSON] InfoMsg
 
