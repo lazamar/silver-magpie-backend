@@ -5,32 +5,18 @@
 
 module Api (Api, apiServer) where
 
-import Control.Monad.IO.Class (liftIO)
-import Data.Bson (Document)
 import Data.Text as T
 import Data.Text.Encoding (encodeUtf8)
-import Database.MongoDB (Action, rest, select)
-import qualified Database.MongoDB.Query as Query
+import MongoTypes.AppAuth (AppAuth)
 import Network.HTTP.Client (Manager)
 import Routes.AppGetAccess
 import Routes.SaveCredentials
 import Routes.SignIn
-import Servant
-    ( (:<|>) ((:<|>))
-    , (:>)
-    , Get
-    , Handler
-    , JSON
-    , QueryParam
-    , Server
-    , err401
-    , throwError
-    )
+import Servant ((:<|>) ((:<|>)), (:>), Get, JSON, QueryParam, Server)
 import Types
-    ( AppAuth
-    , DBActionRunner
+    ( DBActionRunner
     , EnvironmentVariables
-    , InfoMsg (InfoMsg)
+    , InfoMsg
     , domain
     , twitterKey
     , twitterSecret
@@ -41,7 +27,7 @@ import Web.Authenticate.OAuth as OAuth
 -------------------------------------------------------------------------------
 
 type Api =  "sign-in" :> QueryParam "app_session_id" String :> Get '[JSON] AppAuth
-    :<|>    "save-credentials" :> QueryParam "oauth_token" String :> Get '[JSON] InfoMsg
+    :<|>    "save-credentials" :> QueryParam "oauth_token" String :> QueryParam "oauth_verifier" String :> Get '[JSON] InfoMsg
     :<|>    "app-get-access" :> Get '[JSON] InfoMsg
 
 -------------------------------------------------------------------------------
@@ -54,7 +40,7 @@ apiServer env runDbAction manager =
         oauth = twitterOAuth env
     in
             Routes.SignIn.get oauth runDbAction manager
-    :<|>    Routes.SaveCredentials.get oauth runDbAction
+    :<|>    Routes.SaveCredentials.get oauth runDbAction manager
     :<|>    Routes.AppGetAccess.get
 
 

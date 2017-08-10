@@ -5,28 +5,14 @@ module Routes.SignIn (get) where
 
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.Bson ((=:))
-import Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as ByteString
-import Data.Text.Encoding (decodeUtf8)
 import Database.MongoDB.Query (Action, Selection (Select), upsert)
+import MongoTypes.AppAuth (AppAuth (AppAuth, accessRequestToken, appSessionId))
 import Network.HTTP.Client (Manager)
-import Network.HTTP.Client.TLS (newTlsManager)
 import Network.HTTP.Types.Header (hLocation)
 import Servant
-    ( Handler
-    , ServantErr
-    , err301
-    , err400
-    , err500
-    , errBody
-    , errHeaders
-    , throwError
-    )
-import Types
-    ( AppAuth (AppAuth, accessRequestToken, appSessionId)
-    , DBActionRunner
-    , InfoMsg (InfoMsg)
-    )
+    (Handler, err301, err400, err500, errBody, errHeaders, throwError)
+import Types (DBActionRunner)
 import Web.Authenticate.OAuth as OAuth
 
 get ::  OAuth.OAuth -> DBActionRunner -> Manager -> Maybe String -> Handler AppAuth
