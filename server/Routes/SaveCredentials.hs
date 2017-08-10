@@ -3,11 +3,12 @@
 
 module Routes.SaveCredentials (get) where
 
+import Control.Exception (catch)
 import Control.Monad.IO.Class (liftIO)
 import qualified Data.Bson as Bson
 import qualified Data.ByteString.Char8 as ByteString
 import qualified Data.ByteString.Lazy.Char8 as LByteString
-import qualified Data.Text as T
+import Data.Either.Combinators (mapLeft)
 import Database.MongoDB.Query (Action)
 import qualified Database.MongoDB.Query as Mongo
 import MongoTypes.UserDetails
@@ -19,40 +20,73 @@ import MongoTypes.UserDetails
     , toBSON
     , userId
     )
-import Network.HTTP.Client (Manager)
+import Network.HTTP.Client
+    ( HttpException (HttpExceptionRequest, InvalidUrlException)
+    , Manager
+    , Response
+    , responseBody
+    )
 import Network.HTTP.Types.Header (hLocation)
 import Servant
     (Handler, err301, err400, err500, errBody, errHeaders, throwError)
-
 import Types (DBActionRunner, InfoMsg)
-import Web.Authenticate.OAuth as OAuth
+import Web.Authenticate.OAuth (unCredential)
+import qualified Web.Authenticate.OAuth as OAuth
+
+
+{-
+    The user is taken here after he authorises the application with twitter
+    Here we save his authorisation data.
+-}
 
 get :: OAuth.OAuth -> DBActionRunner -> Manager -> Maybe String -> Maybe String -> Handler InfoMsg
 get _ _ _ Nothing _ = throwError err400
 get _ _ _ _ Nothing = throwError err400
 get oauth runDBAction manager (Just requestToken) (Just requestVerifier) =
-        let
-            reqCredentials =
-                    OAuth.injectVerifier (ByteString.pack requestVerifier)
-                    $ OAuth.newCredential (ByteString.pack requestToken) ""
-        in
-        do
-            credentials <- liftIO $ OAuth.getAccessToken oauth reqCredentials manager
-            let
-                eUserDetails = toUserDetails requestToken credentials
+    (=<<) handleDetails
+        $ liftIO
+        $ (=<<) (toUserDetails requestToken)
+        <$> getAccessToken
+                manager
+                oauth
+                requestToken
+                requestVerifier
+    where
+        handleDetails (Left err) =
+            throwError $ err500 { errBody = LByteString.pack err }
 
-            case eUserDetails of
-                Left err ->
-                    throwError $ err500 { errBody = LByteString.pack err }
-
-                Right userDetails ->
-                    liftIO (runDBAction $ saveUserDetails userDetails)
-                    >> liftIO (print $ T.unpack "User Details saved for " ++ screenName userDetails)
-                    >> redirectTo "./thank-you.html"
+        handleDetails (Right userDetails) =
+            liftIO (runDBAction $ saveUserDetails userDetails)
+            >> redirectTo "./thank-you.html"
 
 
+getAccessToken :: Manager -> OAuth.OAuth -> String -> String -> IO (Either String OAuth.Credential)
+getAccessToken manager oauth requestToken requestVerifier  =
+    let
+        reqCredentials =
+                OAuth.injectVerifier (ByteString.pack requestVerifier)
+                $ OAuth.newCredential (ByteString.pack requestToken) ""
 
-toUserDetails :: String -> Credential -> Either String UserDetails
+        performRequest =
+            mapLeft getStringBody
+            <$> OAuth.getAccessTokenWith
+                (OAuth.defaultAccessTokenRequest
+                    oauth
+                    reqCredentials
+                    manager
+                )
+
+        errHandler :: HttpException -> IO (Either String a)
+        errHandler (HttpExceptionRequest _ reason) =
+            return $ Left $ show reason
+        errHandler (InvalidUrlException _ reason) =
+            return $ Left $ show reason
+
+    in
+        catch performRequest errHandler
+
+
+toUserDetails :: String -> OAuth.Credential -> Either String UserDetails
 toUserDetails requestToken credentials =
     let
         dict = unCredential credentials
@@ -76,6 +110,7 @@ toUserDetails requestToken credentials =
                     , accessRequestToken = requestToken
                     }
 
+
 removeQuotes :: [a] -> [a]
 removeQuotes v =
     drop 1 $ take (length v - 1) v
@@ -89,6 +124,7 @@ saveUserDetails userDetails =
     in
         Mongo.insert collection document
 
+
 redirectTo :: String -> Handler a
 redirectTo url =
     let
@@ -98,3 +134,8 @@ redirectTo url =
             { errHeaders = locationHeader:otherHeaders }
     in
         throwError err
+
+
+getStringBody :: Response LByteString.ByteString -> String
+getStringBody r =
+    show $ responseBody r
