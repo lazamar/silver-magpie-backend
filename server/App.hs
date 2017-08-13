@@ -12,8 +12,10 @@ import Database.MongoDB (Pipe, access, connect, master, readHostPort)
 import qualified Database.MongoDB.Query as Query
 import Network.HTTP.Client (Manager)
 import Network.HTTP.Client.TLS (newTlsManager)
+import Network.Wai (Middleware)
 import Network.Wai.Handler.Warp (run)
-import Network.Wai.Middleware.Cors (simpleCors)
+import Network.Wai.Middleware.Cors
+    (cors, corsRequestHeaders, simpleCorsResourcePolicy)
 import Servant ((:<|>) ((:<|>)), Application, Proxy (Proxy), Raw, Server, serve)
 import Servant.Utils.StaticFiles (serveDirectoryFileServer)
 import Types (DBActionRunner, EnvironmentVariables (dbName, dbUrl, port))
@@ -44,8 +46,17 @@ generateRunner pipe database =
 
 app :: EnvironmentVariables -> DBActionRunner -> Manager -> Application
 app env dbRunner manager =
-    simpleCors $ serve withAssetsProxy $ server env dbRunner manager
+    serveWithCORS $ serve withAssetsProxy $ server env dbRunner manager
 
+{- Allow CORS and allow certain headers in CORS requests -}
+serveWithCORS :: Middleware
+serveWithCORS =
+    cors $ const $ Just corsPolicy
+        where
+            corsPolicy =
+                simpleCorsResourcePolicy
+                    { corsRequestHeaders = ["x-app-token"]
+                    }
 
 -------------------------------------------------------------------------------
 --                               Routes

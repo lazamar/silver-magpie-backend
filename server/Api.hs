@@ -12,7 +12,7 @@ import Network.HTTP.Client (Manager)
 import Routes.AppGetAccess
 import Routes.SaveCredentials
 import Routes.SignIn
-import Servant ((:<|>) ((:<|>)), (:>), Get, JSON, QueryParam, Server)
+import Servant ((:<|>) ((:<|>)), (:>), Get, Header, JSON, QueryParam, Server)
 import Types
     ( DBActionRunner
     , EnvironmentVariables
@@ -28,7 +28,7 @@ import Web.Authenticate.OAuth as OAuth
 
 type Api =  "sign-in" :> QueryParam "app_session_id" String :> Get '[JSON] AppAuth
     :<|>    "save-credentials" :> QueryParam "oauth_token" String :> QueryParam "oauth_verifier" String :> Get '[JSON] InfoMsg
-    :<|>    "app-get-access" :> Get '[JSON] InfoMsg
+    :<|>    "app-get-access" :> Header "x-app-token" String :> Get '[JSON] InfoMsg
 
 -------------------------------------------------------------------------------
 --                               Handlers
@@ -41,7 +41,7 @@ apiServer env runDbAction manager =
     in
             Routes.SignIn.get oauth runDbAction manager
     :<|>    Routes.SaveCredentials.get oauth runDbAction manager
-    :<|>    Routes.AppGetAccess.get
+    :<|>    Routes.AppGetAccess.get oauth runDbAction
 
 
 twitterOAuth :: EnvironmentVariables -> OAuth.OAuth
