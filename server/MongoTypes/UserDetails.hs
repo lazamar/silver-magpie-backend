@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module MongoTypes.UserDetails where
@@ -48,3 +47,31 @@ toBSON (UserDetails oT oTS uId sN aRT) =
     , "screen_name" := (String $ T.pack sN)
     , "access_request_token" := (String $ T.pack aRT)
     ]
+
+
+fromBSON :: Bson.Document -> Either String UserDetails
+fromBSON doc =
+    let
+        getProp name =
+            maybe (Left $ "No " ++ T.unpack name ++ " field in credential.") Right
+            (Bson.lookup name doc :: Maybe String)
+    in
+        do
+            token       <- getProp ("oauth_token"::T.Text)
+            tokenSecret <- getProp ("oauth_token_secret"::T.Text)
+            uId         <- getProp ("user_id"::T.Text)
+            sName       <- getProp ("screen_name"::T.Text)
+            aRToken     <- getProp ("access_request_token"::T.Text)
+            return
+                UserDetails
+                    { oauthToken = token
+                    , oauthTokenSecret = tokenSecret
+                    , userId = uId
+                    , screenName = sName
+                    , accessRequestToken = aRToken
+                    }
+
+
+removeQuotes :: [a] -> [a]
+removeQuotes v =
+    drop 1 $ take (length v - 1) v
