@@ -6,26 +6,55 @@ module Routes.AppGetAccess (get) where
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.Bson (Document, (=:))
 import qualified Data.Bson as Bson
+import Data.ByteString.Char8 as ByteString
 import Database.MongoDB.Query (Action, findOne)
 import qualified Database.MongoDB.Query as Mongo
-import MongoTypes.UserDetails (UserDetails)
+import MongoTypes.UserDetails (UserDetails, oauthToken, oauthTokenSecret)
 import qualified MongoTypes.UserDetails as UserDetails
+import Network.HTTP.Client (Manager, httpLbs, parseRequest, responseBody)
 import Servant (Handler, err401, throwError)
 import Types (DBActionRunner, InfoMsg (InfoMsg))
+import Web.Authenticate.OAuth (oauthConsumerKey, oauthConsumerSecret)
 import qualified Web.Authenticate.OAuth as OAuth
 
-get :: OAuth.OAuth -> DBActionRunner -> Maybe String -> Handler InfoMsg
-get _ _ Nothing = throwError err401
-get _ runDbAction (Just sessionId) =
+
+get :: OAuth.OAuth -> Manager -> DBActionRunner -> Maybe String -> Handler InfoMsg
+get _ _ _ Nothing = throwError err401
+get oauth manager runDbAction (Just sessionId) =
     do
         mUser <- liftIO $ runDbAction $ getUserDetailsFromSessionId sessionId
         case mUser of
             Nothing ->
                 throwError err401
-            Just user ->
-                liftIO (print $ show user)
-                >> return (InfoMsg "Authorised")
+            Just userDetails ->
+                do
+                    response <- liftIO $ mainUserDetails oauth manager userDetails
+                    return $ InfoMsg response
 
+
+
+mainUserDetails :: OAuth.OAuth -> Manager -> UserDetails -> IO String
+mainUserDetails oauth manager userDetails =
+    do
+        r1 <- parseRequest $ "GET " ++ endpoint
+        r2 <- OAuth.signOAuth changedOAuth credentials r1
+        response <- httpLbs r2 manager
+        return $ toTwitterDetails $ responseBody response
+    where
+        endpoint =
+            "https://api.twitter.com/1.1/account/verify_credentials.json"
+
+        changedOAuth =
+            oauth
+            { oauthConsumerKey = ByteString.pack $ oauthTokenSecret userDetails
+            , oauthConsumerSecret = ByteString.pack $ oauthToken userDetails
+            }
+
+        credentials =
+            OAuth.emptyCredential
+
+        toTwitterDetails =
+            show
 
 getRequestTokenBySessionId :: MonadIO m => String -> Action m (Maybe Document)
 getRequestTokenBySessionId sessionId =

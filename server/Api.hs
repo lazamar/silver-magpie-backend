@@ -41,7 +41,7 @@ apiServer env runDbAction manager =
     in
             Routes.SignIn.get oauth runDbAction manager
     :<|>    Routes.SaveCredentials.get oauth runDbAction manager
-    :<|>    Routes.AppGetAccess.get oauth runDbAction
+    :<|>    Routes.AppGetAccess.get oauth manager runDbAction
 
 
 twitterOAuth :: EnvironmentVariables -> OAuth.OAuth
