@@ -53,8 +53,10 @@ fromBSON :: Bson.Document -> Either String UserDetails
 fromBSON doc =
     let
         getProp name =
-            maybe (Left $ "No " ++ T.unpack name ++ " field in credential.") Right
-            (Bson.lookup name doc :: Maybe String)
+            maybe
+                (Left $ "No " ++ T.unpack name ++ " field in credential.")
+                Right
+                (Bson.lookup name doc :: Maybe String)
     in
         do
             token       <- getProp ("oauth_token"::T.Text)

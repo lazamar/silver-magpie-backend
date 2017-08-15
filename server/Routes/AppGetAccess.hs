@@ -18,24 +18,13 @@ get :: OAuth.OAuth -> DBActionRunner -> Maybe String -> Handler InfoMsg
 get _ _ Nothing = throwError err401
 get _ runDbAction (Just sessionId) =
     do
-        mCredentials <- liftIO $ runDbAction $ getRequestTokenBySessionId sessionId
-        let
-            mToken = mCredentials >>= (Bson.lookup "access_request_token" :: Document -> Maybe String)
-        case mToken of
+        mUser <- liftIO $ runDbAction $ getUserDetailsFromSessionId sessionId
+        case mUser of
             Nothing ->
                 throwError err401
-
-            Just token ->
-                do
-                    mUser <- liftIO $ runDbAction $ getUserDetailsByRequestToken token
-
-                    case mUser of
-                        Nothing ->
-                            throwError err401
-                        Just user ->
-                            liftIO (print $ show user)
-                            >> (return $ InfoMsg "Authorised")
-
+            Just user ->
+                liftIO (print $ show user)
+                >> return (InfoMsg "Authorised")
 
 
 getRequestTokenBySessionId :: MonadIO m => String -> Action m (Maybe Document)
@@ -58,3 +47,16 @@ getUserDetailsByRequestToken token =
         . maybe (Left "Token not found") UserDetails.fromBSON
         )
         <$> findOne selection
+
+getUserDetailsFromSessionId :: MonadIO m => String -> Action m (Maybe UserDetails)
+getUserDetailsFromSessionId sessionId =
+    do
+        mToken <- (accessRequestToken =<<) <$> getRequestTokenBySessionId sessionId
+        case mToken of
+            Nothing ->
+                return Nothing
+            Just token ->
+                getUserDetailsByRequestToken token
+    where
+        accessRequestToken doc =
+            Bson.lookup "access_request_token" doc ::Maybe String
