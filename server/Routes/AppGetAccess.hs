@@ -14,7 +14,6 @@ import qualified MongoTypes.UserDetails as UserDetails
 import Network.HTTP.Client (Manager, httpLbs, parseRequest, responseBody)
 import Servant (Handler, err401, throwError)
 import Types (DBActionRunner, InfoMsg (InfoMsg))
-import Web.Authenticate.OAuth (oauthConsumerKey, oauthConsumerSecret)
 import qualified Web.Authenticate.OAuth as OAuth
 
 
@@ -37,20 +36,16 @@ mainUserDetails :: OAuth.OAuth -> Manager -> UserDetails -> IO String
 mainUserDetails oauth manager userDetails =
     do
         r1 <- parseRequest $ "GET " ++ endpoint
-        r2 <- OAuth.signOAuth changedOAuth credentials r1
+        r2 <- OAuth.signOAuth oauth credentials r1
         response <- httpLbs r2 manager
         return $ toTwitterDetails $ responseBody response
     where
         endpoint =
             "https://api.twitter.com/1.1/account/verify_credentials.json"
 
-        changedOAuth =
-            oauth
-            { oauthConsumerKey = ByteString.pack $ oauthTokenSecret userDetails
-            , oauthConsumerSecret = ByteString.pack $ oauthToken userDetails
-            }
-
         credentials =
+            OAuth.insert "oauth_token_secret" (ByteString.pack $ oauthTokenSecret userDetails)
+            $ OAuth.insert "oauth_token" (ByteString.pack $ oauthToken userDetails)
             OAuth.emptyCredential
 
         toTwitterDetails =
