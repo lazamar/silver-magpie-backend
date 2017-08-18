@@ -1,2 +1,2 @@
 start:
-	export $(cat .env | xargs) && stack exec silver-magpie
+	stack exec silver-magpie
