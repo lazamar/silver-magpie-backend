@@ -45,6 +45,7 @@ executable silver-magpie
                      , http-client
                      , http-types
                      , bytestring
+                     , containers
   default-language:    Haskell2010
 
 test-suite silver-magpie-haskell-test
