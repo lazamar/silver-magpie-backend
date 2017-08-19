@@ -4,7 +4,6 @@
 
 module Routes.AppGetAccess (get, ReturnType) where
 import Authenticate (authenticate)
-import Control.Exception (catch)
 import Control.Monad.IO.Class (liftIO)
 import Data.Aeson (Object, decode, (.:))
 import Data.Aeson.Types (Parser, ToJSON, parseMaybe)
@@ -13,13 +12,8 @@ import qualified Data.ByteString.Lazy.Char8 as LByteString
 import GHC.Generics (Generic)
 import MongoTypes.UserDetails (UserDetails, oauthToken, oauthTokenSecret)
 import qualified MongoTypes.UserDetails as UserDetails
-import Network.HTTP.Client
-    ( HttpException (HttpExceptionRequest, InvalidUrlException)
-    , Manager
-    , httpLbs
-    , parseRequest
-    , responseBody
-    )
+import Network.HTTP.Client (Manager, httpLbs, parseRequest, responseBody)
+import SafeHttp (safeRequest)
 import Servant (Handler, err401, err500, errBody, throwError)
 import Types (DBActionRunner)
 import qualified Web.Authenticate.OAuth as OAuth
@@ -61,15 +55,13 @@ get oauth manager runDbAction (Just sessionId) =
 
 mainUserDetails :: OAuth.OAuth -> Manager -> UserDetails -> IO (Either String String)
 mainUserDetails oauth manager userDetails =
-    catch performIO errHandler
-    where
-        performIO =
-            do
-                r1 <- parseRequest $ "GET " ++ endpoint
-                r2 <- OAuth.signOAuth oauth credentials r1
-                response <- httpLbs r2 manager
-                return $ toTwitterDetails $ responseBody response
+    safeRequest $ do
+        r1 <- parseRequest $ "GET " ++ endpoint
+        r2 <- OAuth.signOAuth oauth credentials r1
+        response <- httpLbs r2 manager
+        return $ toTwitterDetails $ responseBody response
 
+    where
         endpoint =
             "https://api.twitter.com/1.1/account/verify_credentials.json"
 
@@ -87,8 +79,3 @@ mainUserDetails oauth manager userDetails =
         parseProfileUrl =
             parseMaybe $ \obj ->
                 obj .: "profile_image_url_https" :: Parser String
-
-
-errHandler :: HttpException -> IO (Either String a)
-errHandler (HttpExceptionRequest _ reason) = return $ Left $ show reason
-errHandler (InvalidUrlException _ reason)  = return $ Left $ show reason

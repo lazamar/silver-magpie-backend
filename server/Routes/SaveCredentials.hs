@@ -3,7 +3,6 @@
 
 module Routes.SaveCredentials (get) where
 
-import Control.Exception (catch)
 import Control.Monad.IO.Class (liftIO)
 import qualified Data.Bson as Bson
 import qualified Data.ByteString.Char8 as ByteString
@@ -20,13 +19,9 @@ import MongoTypes.UserDetails
     , toBSON
     , userId
     )
-import Network.HTTP.Client
-    ( HttpException (HttpExceptionRequest, InvalidUrlException)
-    , Manager
-    , Response
-    , responseBody
-    )
+import Network.HTTP.Client (Manager, Response, responseBody)
 import Network.HTTP.Types.Header (hLocation)
+import SafeHttp (safeRequest)
 import Servant
     (Handler, err301, err400, err500, errBody, errHeaders, throwError)
 import Types (DBActionRunner, InfoMsg)
@@ -62,28 +57,18 @@ get oauth runDBAction manager (Just requestToken) (Just requestVerifier) =
 
 getAccessToken :: Manager -> OAuth.OAuth -> String -> String -> IO (Either String OAuth.Credential)
 getAccessToken manager oauth requestToken requestVerifier  =
-    let
+    safeRequest $
+    mapLeft getStringBody <$>
+    OAuth.getAccessTokenWith
+        (OAuth.defaultAccessTokenRequest
+            oauth
+            reqCredentials
+            manager
+        )
+    where
         reqCredentials =
                 OAuth.injectVerifier (ByteString.pack requestVerifier)
                 $ OAuth.newCredential (ByteString.pack requestToken) ""
-
-        performRequest =
-            mapLeft getStringBody
-            <$> OAuth.getAccessTokenWith
-                (OAuth.defaultAccessTokenRequest
-                    oauth
-                    reqCredentials
-                    manager
-                )
-
-        errHandler :: HttpException -> IO (Either String a)
-        errHandler (HttpExceptionRequest _ reason) =
-            return $ Left $ show reason
-        errHandler (InvalidUrlException _ reason) =
-            return $ Left $ show reason
-
-    in
-        catch performRequest errHandler
 
 
 toUserDetails :: String -> OAuth.Credential -> Either String UserDetails

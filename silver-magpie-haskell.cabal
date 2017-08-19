@@ -22,6 +22,7 @@ executable silver-magpie
                      , App
                      , Env
                      , Authenticate
+                     , SafeHttp
                      , Routes.AppGetAccess
                      , Routes.SignIn
                      , Routes.SaveCredentials
