@@ -18,34 +18,66 @@ data UserDetails = UserDetails
     } deriving (Show)
 
 
+collectionName :: T.Text
+collectionName = "credentials"
+
+
+keyOauthToken :: T.Text
+keyOauthToken =
+    "oauth_token"
+
+
+keyOauthTokenSecret :: T.Text
+keyOauthTokenSecret =
+    "oauth_token_secret"
+
+
+keyUserId :: T.Text
+keyUserId =
+    "user_id"
+
+
+keyScreenName :: T.Text
+keyScreenName =
+    "screen_name"
+
+
+keyAccessRequestToken :: T.Text
+keyAccessRequestToken =
+    "access_request_token"
+
+
 instance FromJSON UserDetails where
     parseJSON = withObject "UserDetails" $ \v -> UserDetails
-        <$> v .: "oauth_token"
-        <*> v .: "oauth_token_secret"
-        <*> v .: "user_id"
-        <*> v .: "screen_name"
-        <*> v .: "access_request_token"
+        <$> v .: keyOauthToken
+        <*> v .: keyOauthTokenSecret
+        <*> v .: keyUserId
+        <*> v .: keyScreenName
+        <*> v .: keyAccessRequestToken
 
 
 instance ToJSON UserDetails where
     -- this generates a Value
-    toJSON (UserDetails oT oTS uId sN aRT) =
+    toJSON user =
         object
-        [ "oauth_token" .= oT
-        , "oauth_token_secret" .= oTS
-        , "user_id" .= uId
-        , "screen_name" .= sN
-        , "access_request_token" .= aRT
+        [ keyOauthToken .= oauthToken user
+        , keyOauthTokenSecret .= oauthTokenSecret user
+        , keyUserId .= userId user
+        , keyScreenName .= screenName user
+        , keyAccessRequestToken .= accessRequestToken user
         ]
 
 
 toBSON :: UserDetails -> Bson.Document
-toBSON (UserDetails oT oTS uId sN aRT) =
-    [ "oauth_token" := (String $ T.pack oT)
-    , "oauth_token_secret" := (String $ T.pack oTS)
-    , "user_id" := (String $ T.pack uId)
-    , "screen_name" := (String $ T.pack sN)
-    , "access_request_token" := (String $ T.pack aRT)
+toBSON user =
+    let
+        s = String . T.pack
+    in
+    [ keyOauthToken := s (oauthToken user)
+    , keyOauthTokenSecret := s (oauthTokenSecret user)
+    , keyUserId := s (userId user)
+    , keyScreenName := s (screenName user)
+    , keyAccessRequestToken := s (accessRequestToken user)
     ]
 
 
@@ -59,11 +91,11 @@ fromBSON doc =
                 (Bson.lookup name doc :: Maybe String)
     in
         do
-            token       <- getProp ("oauth_token"::T.Text)
-            tokenSecret <- getProp ("oauth_token_secret"::T.Text)
-            uId         <- getProp ("user_id"::T.Text)
-            sName       <- getProp ("screen_name"::T.Text)
-            aRToken     <- getProp ("access_request_token"::T.Text)
+            token       <- getProp keyOauthToken
+            tokenSecret <- getProp keyOauthTokenSecret
+            uId         <- getProp keyUserId
+            sName       <- getProp keyScreenName
+            aRToken     <- getProp keyAccessRequestToken
             return
                 UserDetails
                     { oauthToken = token
@@ -72,8 +104,3 @@ fromBSON doc =
                     , screenName = sName
                     , accessRequestToken = aRToken
                     }
-
-
-removeQuotes :: [a] -> [a]
-removeQuotes v =
-    drop 1 $ take (length v - 1) v
