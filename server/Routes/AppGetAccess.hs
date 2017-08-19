@@ -6,11 +6,10 @@ module Routes.AppGetAccess (get, ReturnType) where
 import Authenticate (authenticate)
 import Control.Exception (catch)
 import Control.Monad.IO.Class (liftIO)
-import Data.Aeson (decode)
-import Data.Aeson.Types (ToJSON)
+import Data.Aeson (Object, decode, (.:))
+import Data.Aeson.Types (Parser, ToJSON, parseMaybe)
 import Data.ByteString.Char8 as ByteString
 import qualified Data.ByteString.Lazy.Char8 as LByteString
-import qualified Data.Map.Strict as Map
 import GHC.Generics (Generic)
 import MongoTypes.UserDetails (UserDetails, oauthToken, oauthTokenSecret)
 import qualified MongoTypes.UserDetails as UserDetails
@@ -80,9 +79,14 @@ mainUserDetails oauth manager userDetails =
             OAuth.emptyCredential
 
         toTwitterDetails json =
-            maybe (Left "Failed to decode twitter response") Right
-            $ Map.lookup "profile_image_url_https"
-            =<< (decode json :: Maybe (Map.Map String String))
+            maybe (Left "Failed to decode twitter response") Right $
+            parseProfileUrl =<<
+            (decode json :: Maybe Object)
+
+        parseProfileUrl :: Object -> Maybe String
+        parseProfileUrl =
+            parseMaybe $ \obj ->
+                obj .: "profile_image_url_https" :: Parser String
 
 
 errHandler :: HttpException -> IO (Either String a)
