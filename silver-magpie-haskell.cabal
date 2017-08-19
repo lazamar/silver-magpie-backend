@@ -21,6 +21,7 @@ executable silver-magpie
                      , Api
                      , App
                      , Env
+                     , Authenticate
                      , Routes.AppGetAccess
                      , Routes.SignIn
                      , Routes.SaveCredentials
