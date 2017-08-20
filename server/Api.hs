@@ -10,6 +10,7 @@ import Data.Text.Encoding (encodeUtf8)
 import MongoTypes.AppAuth (AppAuth)
 import Network.HTTP.Client (Manager)
 import Routes.AppGetAccess
+import Routes.Home
 import Routes.SaveCredentials
 import Routes.SignIn
 import Servant ((:<|>) ((:<|>)), (:>), Get, Header, JSON, QueryParam, Server)
@@ -29,6 +30,7 @@ import Web.Authenticate.OAuth as OAuth
 type Api =  "sign-in" :> QueryParam "app_session_id" String :> Get '[JSON] AppAuth
     :<|>    "save-credentials" :> QueryParam "oauth_token" String :> QueryParam "oauth_verifier" String :> Get '[JSON] InfoMsg
     :<|>    "app-get-access" :> Header "x-app-token" String :> Get '[JSON] Routes.AppGetAccess.ReturnType
+    :<|>    "home" :> Header "x-app-token" String :> Get '[JSON] Routes.Home.ReturnType
 
 -------------------------------------------------------------------------------
 --                               Handlers
@@ -42,6 +44,7 @@ apiServer env runDbAction manager =
             Routes.SignIn.get oauth runDbAction manager
     :<|>    Routes.SaveCredentials.get oauth runDbAction manager
     :<|>    Routes.AppGetAccess.get oauth manager runDbAction
+    :<|>    Routes.Home.get oauth manager runDbAction
 
 
 twitterOAuth :: EnvironmentVariables -> OAuth.OAuth

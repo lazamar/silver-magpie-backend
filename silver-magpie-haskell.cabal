@@ -1,63 +1,66 @@
-name:                silver-magpie-haskell
-version:             0.1.0.0
--- synopsis:
--- description:
-homepage:            https://github.com/githubuser/silver-magpie-haskell#readme
-license:             BSD3
-license-file:        LICENSE
-author:              Author name here
-maintainer:          example@example.com
-copyright:           2017 Author name here
-category:            Web
-build-type:          Simple
-extra-source-files:  README.md
-cabal-version:       >=1.10
-
-executable silver-magpie
-  hs-source-dirs:      server
-  main-is:             Main.hs
-  other-modules:       Main
-                     , Types
-                     , Api
-                     , App
-                     , Env
-                     , Authenticate
-                     , SafeHttp
-                     , Routes.AppGetAccess
-                     , Routes.SignIn
-                     , Routes.SaveCredentials
-                     , MongoTypes.AppAuth
-                     , MongoTypes.UserDetails
-  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
-  build-depends:       base
-                     , bson
-                     , aeson
-                     , servant
-                     , servant-server
-                     , wai
-                     , warp
-                     , text
-                     , mongoDB
-                     , either
-                     , yaml
-                     , authenticate-oauth
-                     , http-client-tls
-                     , wai-cors
-                     , http-client
-                     , http-types
-                     , bytestring
-                     , containers
-  default-language:    Haskell2010
-
-test-suite silver-magpie-haskell-test
-  type:                exitcode-stdio-1.0
-  hs-source-dirs:      server-tests
-  main-is:             Test.hs
-  build-depends:       base
-                     , silver-magpie
-  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
-  default-language:    Haskell2010
+name: silver-magpie-haskell
+version: 0.1.0.0
+cabal-version: >=1.10
+build-type: Simple
+license: BSD3
+license-file: LICENSE
+copyright: 2017 Author name here
+maintainer: example@example.com
+homepage: https://github.com/githubuser/silver-magpie-haskell#readme
+category: Web
+author: Author name here
+extra-source-files:
+    README.md
 
 source-repository head
-  type:     git
-  location: https://github.com/githubuser/silver-magpie-haskell
+    type: git
+    location: https://github.com/githubuser/silver-magpie-haskell
+
+executable silver-magpie
+    main-is: Main.hs
+    build-depends:
+        base -any,
+        bson -any,
+        aeson -any,
+        servant -any,
+        servant-server -any,
+        wai -any,
+        warp -any,
+        text -any,
+        mongoDB -any,
+        either -any,
+        yaml -any,
+        authenticate-oauth -any,
+        http-client-tls -any,
+        wai-cors -any,
+        http-client -any,
+        http-types -any,
+        bytestring -any,
+        containers -any
+    default-language: Haskell2010
+    hs-source-dirs: server
+    other-modules:
+        Main
+        Types
+        Api
+        App
+        Env
+        Authenticate
+        SafeHttp
+        Routes.AppGetAccess
+        Routes.SignIn
+        Routes.SaveCredentials
+        Routes.Home
+        MongoTypes.AppAuth
+        MongoTypes.UserDetails
+    ghc-options: -threaded -rtsopts -with-rtsopts=-N
+
+test-suite silver-magpie-haskell-test
+    type: exitcode-stdio-1.0
+    main-is: Test.hs
+    build-depends:
+        base -any,
+        silver-magpie -any
+    default-language: Haskell2010
+    hs-source-dirs: server-tests
+    ghc-options: -threaded -rtsopts -with-rtsopts=-N
