@@ -47,6 +47,7 @@ executable silver-magpie
         Env
         Authenticate
         SafeHttp
+        Twitter
         Routes.AppGetAccess
         Routes.SignIn
         Routes.SaveCredentials

@@ -27,10 +27,21 @@ import Web.Authenticate.OAuth as OAuth
 --                               API
 -------------------------------------------------------------------------------
 
-type Api =  "sign-in" :> QueryParam "app_session_id" String :> Get '[JSON] AppAuth
-    :<|>    "save-credentials" :> QueryParam "oauth_token" String :> QueryParam "oauth_verifier" String :> Get '[JSON] InfoMsg
-    :<|>    "app-get-access" :> Header "x-app-token" String :> Get '[JSON] Routes.AppGetAccess.ReturnType
-    :<|>    "home" :> Header "x-app-token" String :> Get '[JSON] Routes.Home.ReturnType
+type Api =
+    "sign-in"
+            :> QueryParam "app_session_id" String
+            :> Get '[JSON] AppAuth
+    :<|> "save-credentials"
+            :> QueryParam "oauth_token" String
+            :> QueryParam "oauth_verifier" String :> Get '[JSON] InfoMsg
+    :<|> "app-get-access"
+            :> Header "x-app-token" String
+            :> Get '[JSON] Routes.AppGetAccess.ReturnType
+    :<|> "home"
+            :> Header "x-app-token" String
+            :> QueryParam "sinceId" String
+            :> QueryParam "maxId" String
+            :> Get '[JSON] Routes.Home.ReturnType
 
 -------------------------------------------------------------------------------
 --                               Handlers

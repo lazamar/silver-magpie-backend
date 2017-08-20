@@ -7,17 +7,24 @@ import Authenticate (authenticate)
 import Control.Monad.IO.Class (liftIO)
 import Data.Aeson (Object, decode, (.:))
 import Data.Aeson.Types (Parser, ToJSON, parseMaybe)
-import Data.ByteString.Char8 as ByteString
 import qualified Data.ByteString.Lazy.Char8 as LByteString
 import GHC.Generics (Generic)
-import MongoTypes.UserDetails (UserDetails, oauthToken, oauthTokenSecret)
+import MongoTypes.UserDetails (UserDetails)
 import qualified MongoTypes.UserDetails as UserDetails
-import Network.HTTP.Client (Manager, httpLbs, parseRequest, responseBody)
-import SafeHttp (safeRequest)
+import Network.HTTP.Client (Manager, responseBody)
 import Servant (Handler, err401, err500, errBody, throwError)
+import Twitter
+    ( RequestConfig (RequestConfig)
+    , configManager
+    , configMethod
+    , configOauth
+    , configQuery
+    , configUrl
+    , configUserDetails
+    , queryApi
+    )
 import Types (DBActionRunner)
 import qualified Web.Authenticate.OAuth as OAuth
-
 
 data ReturnType =
      ReturnType
@@ -55,20 +62,19 @@ get oauth manager runDbAction (Just sessionId) =
 
 mainUserDetails :: OAuth.OAuth -> Manager -> UserDetails -> IO (Either String String)
 mainUserDetails oauth manager userDetails =
-    safeRequest $ do
-        r1 <- parseRequest $ "GET " ++ endpoint
-        r2 <- OAuth.signOAuth oauth credentials r1
-        response <- httpLbs r2 manager
-        return $ toTwitterDetails $ responseBody response
-
+    do
+        eitherRequest <- queryApi requestConfig
+        return $ eitherRequest >>= toTwitterDetails . responseBody
     where
-        endpoint =
-            "https://api.twitter.com/1.1/account/verify_credentials.json"
-
-        credentials =
-            OAuth.insert "oauth_token_secret" (ByteString.pack $ oauthTokenSecret userDetails)
-            $ OAuth.insert "oauth_token" (ByteString.pack $ oauthToken userDetails)
-            OAuth.emptyCredential
+        requestConfig =
+            RequestConfig
+                { configOauth = oauth
+                , configManager = manager
+                , configUserDetails = userDetails
+                , configUrl = "https://api.twitter.com/1.1/account/verify_credentials.json"
+                , configMethod = "GET"
+                , configQuery = []
+                }
 
         toTwitterDetails json =
             maybe (Left "Failed to decode twitter response") Right $
