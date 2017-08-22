@@ -6,6 +6,7 @@
 module App (runApp) where
 
 import Api (Api, apiServer)
+import Authenticate (authContext)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Database.MongoDB (Pipe, access, connect, master, readHostPort)
@@ -16,7 +17,14 @@ import Network.Wai (Middleware)
 import Network.Wai.Handler.Warp (run)
 import Network.Wai.Middleware.Cors
     (cors, corsRequestHeaders, simpleCorsResourcePolicy)
-import Servant ((:<|>) ((:<|>)), Application, Proxy (Proxy), Raw, Server, serve)
+import Servant
+    ( (:<|>) ((:<|>))
+    , Application
+    , Proxy (Proxy)
+    , Raw
+    , Server
+    , serveWithContext
+    )
 import Servant.Utils.StaticFiles (serveDirectoryFileServer)
 import Types (DBActionRunner, EnvironmentVariables (dbName, dbUrl, port))
 
@@ -46,7 +54,11 @@ generateRunner pipe database =
 
 app :: EnvironmentVariables -> DBActionRunner -> Manager -> Application
 app env dbRunner manager =
-    serveWithCORS $ serve withAssetsProxy $ server env dbRunner manager
+    serveWithCORS $
+        serveWithContext
+            withAssetsProxy
+            (authContext dbRunner)
+            $ server env dbRunner manager
 
 {- Allow CORS and allow certain headers in CORS requests -}
 serveWithCORS :: Middleware

@@ -1,10 +1,12 @@
 {-# LANGUAGE DataKinds         #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes        #-}
+{-# LANGUAGE TypeFamilies      #-}
 {-# LANGUAGE TypeOperators     #-}
 
 module Api (Api, apiServer) where
 
+import Authenticate (Authenticate)
 import Data.Text as T
 import Data.Text.Encoding (encodeUtf8)
 import MongoTypes.AppAuth (AppAuth)
@@ -13,7 +15,7 @@ import Routes.AppGetAccess
 import Routes.Home
 import Routes.SaveCredentials
 import Routes.SignIn
-import Servant ((:<|>) ((:<|>)), (:>), Get, Header, JSON, QueryParam, Server)
+import Servant ((:<|>) ((:<|>)), (:>), Get, JSON, QueryParam, Server)
 import Types
     ( DBActionRunner
     , EnvironmentVariables
@@ -23,6 +25,8 @@ import Types
     , twitterSecret
     )
 import Web.Authenticate.OAuth as OAuth
+
+
 -------------------------------------------------------------------------------
 --                               API
 -------------------------------------------------------------------------------
@@ -35,10 +39,10 @@ type Api =
             :> QueryParam "oauth_token" String
             :> QueryParam "oauth_verifier" String :> Get '[JSON] InfoMsg
     :<|> "app-get-access"
-            :> Header "x-app-token" String
+            :> Authenticate
             :> Get '[JSON] Routes.AppGetAccess.ReturnType
     :<|> "home"
-            :> Header "x-app-token" String
+            :> Authenticate
             :> QueryParam "sinceId" String
             :> QueryParam "maxId" String
             :> Get '[JSON] Routes.Home.ReturnType
@@ -54,8 +58,8 @@ apiServer env runDbAction manager =
     in
             Routes.SignIn.get oauth runDbAction manager
     :<|>    Routes.SaveCredentials.get oauth runDbAction manager
-    :<|>    Routes.AppGetAccess.get oauth manager runDbAction
-    :<|>    Routes.Home.get oauth manager runDbAction
+    :<|>    Routes.AppGetAccess.get oauth manager
+    :<|>    Routes.Home.get oauth manager
 
 
 twitterOAuth :: EnvironmentVariables -> OAuth.OAuth
