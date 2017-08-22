@@ -11,10 +11,11 @@ import Data.Text as T
 import Data.Text.Encoding (encodeUtf8)
 import MongoTypes.AppAuth (AppAuth)
 import Network.HTTP.Client (Manager)
-import Routes.AppGetAccess
-import Routes.Home
-import Routes.SaveCredentials
-import Routes.SignIn
+import qualified Routes.AppGetAccess
+import qualified Routes.Home
+import qualified Routes.Mentions
+import qualified Routes.SaveCredentials
+import qualified Routes.SignIn
 import Servant ((:<|>) ((:<|>)), (:>), Get, JSON, QueryParam, Server)
 import Twitter.Timeline (Timeline)
 import Types
@@ -47,6 +48,11 @@ type Api =
             :> QueryParam "sinceId" String
             :> QueryParam "maxId" String
             :> Get '[JSON] Timeline
+    :<|> "mentions"
+            :> Authenticate
+            :> QueryParam "sinceId" String
+            :> QueryParam "maxId" String
+            :> Get '[JSON] Timeline
 
 -------------------------------------------------------------------------------
 --                               Handlers
@@ -61,6 +67,7 @@ apiServer env runDbAction manager =
     :<|>    Routes.SaveCredentials.get oauth runDbAction manager
     :<|>    Routes.AppGetAccess.get oauth manager
     :<|>    Routes.Home.get oauth manager
+    :<|>    Routes.Mentions.get oauth manager
 
 
 twitterOAuth :: EnvironmentVariables -> OAuth.OAuth
