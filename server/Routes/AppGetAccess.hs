@@ -12,7 +12,7 @@ import MongoTypes.UserDetails (UserDetails, accessRequestToken)
 import qualified MongoTypes.UserDetails as UserDetails
 import Network.HTTP.Client (Manager, responseBody)
 import Servant (Handler, err500, errBody, throwError)
-import Twitter
+import Twitter.Query
     ( RequestConfig (RequestConfig)
     , configManager
     , configMethod

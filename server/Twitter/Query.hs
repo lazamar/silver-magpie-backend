@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Twitter
+module Twitter.Query
     ( queryApi
     , configOauth
     , configManager

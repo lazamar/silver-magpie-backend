@@ -16,6 +16,7 @@ import Routes.Home
 import Routes.SaveCredentials
 import Routes.SignIn
 import Servant ((:<|>) ((:<|>)), (:>), Get, JSON, QueryParam, Server)
+import Twitter.Timeline (Timeline)
 import Types
     ( DBActionRunner
     , EnvironmentVariables
@@ -45,7 +46,7 @@ type Api =
             :> Authenticate
             :> QueryParam "sinceId" String
             :> QueryParam "maxId" String
-            :> Get '[JSON] Routes.Home.ReturnType
+            :> Get '[JSON] Timeline
 
 -------------------------------------------------------------------------------
 --                               Handlers
