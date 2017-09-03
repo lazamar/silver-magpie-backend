@@ -2,15 +2,8 @@
 
 module Twitter.Query
     ( queryApi
-    , configOauth
-    , configManager
-    , configUserDetails
-    , configUrl
-    , configMethod
-    , configQuery
     , query
     , get
-    , RequestConfig(RequestConfig)
     ) where
 
 import Data.Aeson (Value, decode)
@@ -38,19 +31,9 @@ get = query "GET"
 query ::  String -> String -> [(String, Maybe String)] -> OAuth.OAuth -> Manager -> UserDetails -> IO (Either String Value)
 query meth url queryList oauth manager userDetails =
     do
-        eitherRequest <- queryApi requestConfig
+        eitherRequest <- queryApi meth url queryList oauth manager userDetails
         return $ eitherRequest >>= parseValue . responseBody
     where
-        requestConfig =
-            RequestConfig
-                { configOauth = oauth
-                , configManager = manager
-                , configUserDetails = userDetails
-                , configUrl = url
-                , configMethod = meth
-                , configQuery = queryList
-                }
-
         parseValue json =
             maybe
                 (Left "Failed to decode twitter response")
@@ -58,20 +41,8 @@ query meth url queryList oauth manager userDetails =
                 (decode json :: Maybe Value)
 
 
-
-
-data RequestConfig =
-    RequestConfig
-        { configOauth       :: OAuth.OAuth
-        , configManager     :: Manager
-        , configUserDetails :: UserDetails
-        , configUrl         :: String
-        , configMethod      :: String
-        , configQuery       :: [ (String, Maybe String) ]
-        }
-
-queryApi :: RequestConfig -> IO (Either String (Response LB.ByteString))
-queryApi (RequestConfig oauth manager userDetails url cMethod q) =
+queryApi ::  String -> String -> [(String, Maybe String)] -> OAuth.OAuth -> Manager -> UserDetails  -> IO (Either String (Response LB.ByteString))
+queryApi  cMethod url queryList oauth manager userDetails =
     safeRequest $
         fmap Right $
         flip httpLbs manager =<<
@@ -83,7 +54,7 @@ queryApi (RequestConfig oauth manager userDetails url cMethod q) =
             intercalate "&" .
             filterMap id .
             fmap toQueryVariable $
-            q
+            queryList
 
         withConfig request =
             request

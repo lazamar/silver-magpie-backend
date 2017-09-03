@@ -12,16 +12,7 @@ import MongoTypes.UserDetails (UserDetails, accessRequestToken)
 import qualified MongoTypes.UserDetails as UserDetails
 import Network.HTTP.Client (Manager, responseBody)
 import Servant (Handler, err500, errBody, throwError)
-import Twitter.Query
-    ( RequestConfig (RequestConfig)
-    , configManager
-    , configMethod
-    , configOauth
-    , configQuery
-    , configUrl
-    , configUserDetails
-    , queryApi
-    )
+import qualified Twitter.Query
 import qualified Web.Authenticate.OAuth as OAuth
 
 data ReturnType =
@@ -54,18 +45,17 @@ get oauth manager userDetails =
 mainUserDetails :: OAuth.OAuth -> Manager -> UserDetails -> IO (Either String String)
 mainUserDetails oauth manager userDetails =
     do
-        eitherRequest <- queryApi requestConfig
+        eitherRequest <- fetch
         return $ eitherRequest >>= toTwitterDetails . responseBody
     where
-        requestConfig =
-            RequestConfig
-                { configOauth = oauth
-                , configManager = manager
-                , configUserDetails = userDetails
-                , configUrl = "https://api.twitter.com/1.1/account/verify_credentials.json"
-                , configMethod = "GET"
-                , configQuery = []
-                }
+        fetch =
+            Twitter.Query.queryApi
+                "GET"
+                "https://api.twitter.com/1.1/account/verify_credentials.json"
+                []
+                oauth
+                manager
+                userDetails
 
         toTwitterDetails json =
             maybe (Left "Failed to decode twitter response") Right $
