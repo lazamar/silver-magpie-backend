@@ -8,7 +8,7 @@ import qualified Data.ByteString.Lazy.Char8 as LB
 import MongoTypes.UserDetails (UserDetails)
 import Network.HTTP.Client (Manager)
 import Servant (Handler, err500, errBody, throwError)
-import Twitter.Timeline (Timeline)
+import Twitter.Timeline (Timeline, WhichTimeline (MentionsTimeline))
 import qualified Twitter.Timeline as Timeline
 import qualified Web.Authenticate.OAuth as OAuth
 
@@ -22,7 +22,8 @@ get oauth manager userDetails mMaxId mSinceId =
                 throwError $ err500 { errBody = LB.pack msg }
 
             fetchMentions =
-                Timeline.fetchMentions
+                Timeline.fetchTimeline
+                    MentionsTimeline
                     oauth
                     manager
                     userDetails

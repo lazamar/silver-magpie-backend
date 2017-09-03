@@ -1,22 +1,13 @@
 {-# LANGUAGE DeriveGeneric #-}
 
-module Twitter.Timeline (Timeline, fetchHome, fetchMentions, tweets) where
+module Twitter.Timeline (Timeline, WhichTimeline(..), fetchTimeline, tweets) where
 
-import Data.Aeson (Value, decode)
+import Data.Aeson (Value)
 import Data.Aeson.Types (ToJSON)
 import GHC.Generics (Generic)
 import MongoTypes.UserDetails (UserDetails)
-import Network.HTTP.Client (Manager, responseBody)
-import Twitter.Query
-    ( RequestConfig (RequestConfig)
-    , configManager
-    , configMethod
-    , configOauth
-    , configQuery
-    , configUrl
-    , configUserDetails
-    , queryApi
-    )
+import Network.HTTP.Client (Manager)
+import qualified Twitter.Query
 import qualified Web.Authenticate.OAuth as OAuth
 
 newtype Timeline =
@@ -28,39 +19,35 @@ newtype Timeline =
 instance ToJSON Timeline
 
 
-fetchHome :: OAuth.OAuth -> Manager -> UserDetails -> Maybe String -> Maybe String -> IO (Either String Timeline)
-fetchHome =
-    fetchTweets "home_timeline"
-
-fetchMentions :: OAuth.OAuth -> Manager -> UserDetails -> Maybe String -> Maybe String -> IO (Either String Timeline)
-fetchMentions =
-    fetchTweets "mentions_timeline"
+data WhichTimeline
+    = HomeTimeline
+    | MentionsTimeline
 
 
-fetchTweets :: String -> OAuth.OAuth -> Manager -> UserDetails -> Maybe String -> Maybe String -> IO (Either String Timeline)
-fetchTweets timeline oauth manager userDetails mSinceId mMaxId =
-    do
-        eitherRequest <- queryApi requestConfig
-        return $ eitherRequest >>= toTweets . responseBody
+instance Show WhichTimeline where
+    show HomeTimeline     = "home_timeline"
+    show MentionsTimeline = "mentions_timeline"
+
+
+fetchTimeline :: WhichTimeline
+    -> OAuth.OAuth
+    -> Manager
+    -> UserDetails
+    -> Maybe String
+    -> Maybe String
+    -> IO (Either String Timeline)
+fetchTimeline timeline oauth manager userDetails mSinceId mMaxId =
+    fmap Timeline <$>
+        Twitter.Query.get url queryList oauth manager userDetails
+
     where
-        requestConfig =
-            RequestConfig
-                { configOauth = oauth
-                , configManager = manager
-                , configUserDetails = userDetails
-                , configUrl = "https://api.twitter.com/1.1/statuses/" ++ timeline ++ ".json"
-                , configMethod = "GET"
-                , configQuery =
-                    [ ("max_id", mMaxId >>= removeEmpty)
-                    , ("since_id", mSinceId >>= removeEmpty)
-                    ]
-                }
+        queryList =
+            [ ("max_id", mMaxId >>= removeEmpty)
+            , ("since_id", mSinceId >>= removeEmpty)
+            ]
 
-        toTweets json =
-            maybe
-                (Left "Failed to decode twitter response")
-                (Right . Timeline)
-                (decode json :: Maybe Value)
+        url =
+            "https://api.twitter.com/1.1/statuses/" ++ show timeline ++ ".json"
 
         removeEmpty v =
             if null v then
