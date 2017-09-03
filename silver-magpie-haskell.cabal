@@ -49,11 +49,13 @@ executable silver-magpie
         SafeHttp
         Twitter.Query
         Twitter.Timeline
+        Twitter.Users
         Routes.AppGetAccess
         Routes.SignIn
         Routes.SaveCredentials
         Routes.Home
         Routes.Mentions
+        Routes.UserSearch
         MongoTypes.AppAuth
         MongoTypes.UserDetails
     ghc-options: -threaded -rtsopts -with-rtsopts=-N

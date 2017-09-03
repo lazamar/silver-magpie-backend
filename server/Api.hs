@@ -7,6 +7,7 @@
 module Api (Api, apiServer) where
 
 import Authenticate (Authenticate)
+import Data.Aeson (Value)
 import Data.Text as T
 import Data.Text.Encoding (encodeUtf8)
 import MongoTypes.AppAuth (AppAuth)
@@ -16,6 +17,7 @@ import qualified Routes.Home
 import qualified Routes.Mentions
 import qualified Routes.SaveCredentials
 import qualified Routes.SignIn
+import qualified Routes.UserSearch
 import Servant ((:<|>) ((:<|>)), (:>), Get, JSON, QueryParam, Server)
 import Twitter.Timeline (Timeline)
 import Types
@@ -53,6 +55,10 @@ type Api =
             :> QueryParam "sinceId" String
             :> QueryParam "maxId" String
             :> Get '[JSON] Timeline
+    :<|> "user-search"
+            :> Authenticate
+            :> QueryParam "q" String
+            :> Get '[JSON] Value
 
 -------------------------------------------------------------------------------
 --                               Handlers
@@ -68,6 +74,7 @@ apiServer env runDbAction manager =
     :<|>    Routes.AppGetAccess.get oauth manager
     :<|>    Routes.Home.get oauth manager
     :<|>    Routes.Mentions.get oauth manager
+    :<|>    Routes.UserSearch.get oauth manager
 
 
 twitterOAuth :: EnvironmentVariables -> OAuth.OAuth
