@@ -8,12 +8,16 @@ import qualified Data.ByteString.Lazy.Char8 as LB
 import MongoTypes.UserDetails (UserDetails)
 import Network.HTTP.Client (Manager)
 import Servant (Handler, err500, errBody, throwError)
-import Twitter.Timeline (Timeline, WhichTimeline (MentionsTimeline))
-import qualified Twitter.Timeline as Timeline
+import Twitter (Timeline, WhichTimeline (MentionsTimeline), fetchTimeline)
 import qualified Web.Authenticate.OAuth as OAuth
 
 
-get :: OAuth.OAuth -> Manager -> UserDetails -> Maybe String -> Maybe String -> Handler Timeline
+get :: OAuth.OAuth
+    -> Manager
+    -> UserDetails
+    -> Maybe String
+    -> Maybe String
+    -> Handler Timeline
 get oauth manager userDetails mMaxId mSinceId =
     liftIO fetchMentions >>= either err return
         where
@@ -22,10 +26,10 @@ get oauth manager userDetails mMaxId mSinceId =
                 throwError $ err500 { errBody = LB.pack msg }
 
             fetchMentions =
-                Timeline.fetchTimeline
+                fetchTimeline
                     MentionsTimeline
+                    mMaxId
+                    mSinceId
                     oauth
                     manager
                     userDetails
-                    mMaxId
-                    mSinceId

@@ -12,7 +12,7 @@ import MongoTypes.UserDetails (UserDetails, accessRequestToken)
 import qualified MongoTypes.UserDetails as UserDetails
 import Network.HTTP.Client (Manager, responseBody)
 import Servant (Handler, err500, errBody, throwError)
-import qualified Twitter.Query
+import qualified Twitter
 import qualified Web.Authenticate.OAuth as OAuth
 
 data ReturnType =
@@ -49,7 +49,7 @@ mainUserDetails oauth manager userDetails =
         return $ eitherRequest >>= toTwitterDetails . responseBody
     where
         fetch =
-            Twitter.Query.queryApi
+            Twitter.queryApi
                 "GET"
                 "https://api.twitter.com/1.1/account/verify_credentials.json"
                 []

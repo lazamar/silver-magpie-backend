@@ -19,7 +19,7 @@ import qualified Routes.SaveCredentials
 import qualified Routes.SignIn
 import qualified Routes.UserSearch
 import Servant ((:<|>) ((:<|>)), (:>), Get, JSON, QueryParam, Server)
-import Twitter.Timeline (Timeline)
+import Twitter (Timeline)
 import Types
     ( DBActionRunner
     , EnvironmentVariables

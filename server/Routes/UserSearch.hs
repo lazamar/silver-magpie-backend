@@ -9,7 +9,7 @@ import qualified Data.ByteString.Lazy.Char8 as LB
 import MongoTypes.UserDetails (UserDetails)
 import Network.HTTP.Client (Manager)
 import Servant (Handler, err500, errBody, throwError)
-import Twitter.Users (searchUser)
+import Twitter (searchUser)
 import qualified Web.Authenticate.OAuth as OAuth
 
 
