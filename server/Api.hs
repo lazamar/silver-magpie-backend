@@ -13,12 +13,13 @@ import Data.Text.Encoding (encodeUtf8)
 import MongoTypes.AppAuth (AppAuth)
 import Network.HTTP.Client (Manager)
 import qualified Routes.AppGetAccess
+import qualified Routes.AppRevokeAccess
 import qualified Routes.Home
 import qualified Routes.Mentions
 import qualified Routes.SaveCredentials
 import qualified Routes.SignIn
 import qualified Routes.UserSearch
-import Servant ((:<|>) ((:<|>)), (:>), Get, JSON, QueryParam, Server)
+import Servant ((:<|>) ((:<|>)), (:>), Delete, Get, JSON, QueryParam, Server)
 import Twitter (Timeline)
 import Types
     ( DBActionRunner
@@ -45,6 +46,9 @@ type Api =
     :<|> "app-get-access"
             :> Authenticate
             :> Get '[JSON] Routes.AppGetAccess.ReturnType
+    :<|> "app-revoke-access"
+            :> Authenticate
+            :> Delete '[JSON] InfoMsg
     :<|> "home"
             :> Authenticate
             :> QueryParam "sinceId" String
@@ -72,6 +76,7 @@ apiServer env runDbAction manager =
             Routes.SignIn.get oauth runDbAction manager
     :<|>    Routes.SaveCredentials.get oauth runDbAction manager
     :<|>    Routes.AppGetAccess.get oauth manager
+    :<|>    Routes.AppRevokeAccess.delete runDbAction
     :<|>    Routes.Home.get oauth manager
     :<|>    Routes.Mentions.get oauth manager
     :<|>    Routes.UserSearch.get oauth manager

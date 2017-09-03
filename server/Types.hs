@@ -33,7 +33,7 @@ instance FromJSON EnvironmentVariables
 -- API Types
 
 
-newtype InfoMsg = InfoMsg { msg :: String }
+newtype InfoMsg = InfoMsg { status :: String }
     deriving (Generic, Show)
 
 instance ToJSON InfoMsg
