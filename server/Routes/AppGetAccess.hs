@@ -8,10 +8,10 @@ import Data.Aeson (Object, decode, (.:))
 import Data.Aeson.Types (Parser, ToJSON, parseMaybe)
 import qualified Data.ByteString.Lazy.Char8 as LByteString
 import GHC.Generics (Generic)
-import MongoTypes.UserDetails (UserDetails, accessRequestToken)
+import MongoTypes.UserDetails (UserDetails)
 import qualified MongoTypes.UserDetails as UserDetails
 import Network.HTTP.Client (Manager, responseBody)
-import Servant (Handler, err500, errBody, throwError)
+import Servant (Handler, err401, err500, errBody, throwError)
 import qualified Twitter
 import qualified Web.Authenticate.OAuth as OAuth
 
@@ -26,8 +26,9 @@ data ReturnType =
 instance ToJSON ReturnType
 
 
-get :: OAuth.OAuth -> Manager -> UserDetails -> Handler ReturnType
-get oauth manager userDetails =
+get :: OAuth.OAuth -> Manager -> UserDetails -> Maybe String -> Handler ReturnType
+get _ _ _ Nothing  = throwError err401
+get oauth manager userDetails (Just sessionId) =
     do
         response <- liftIO $ mainUserDetails oauth manager userDetails
         case response of
@@ -36,7 +37,7 @@ get oauth manager userDetails =
             Right profileImage ->
                 return
                     ReturnType
-                        { app_access_token = accessRequestToken userDetails
+                        { app_access_token = sessionId
                         , screen_name = UserDetails.screenName userDetails
                         , profile_image_url_https = profileImage
                         }

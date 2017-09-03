@@ -16,7 +16,7 @@ import Types (DBActionRunner, InfoMsg (InfoMsg))
 delete :: DBActionRunner -> UserDetails -> Handler InfoMsg
 delete runDbAction userDetails =
     do
-        _ <- liftIO $
+        liftIO $
             runDbAction $
             deleteByRequestToken $
             UserDetails.accessRequestToken userDetails

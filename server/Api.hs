@@ -19,7 +19,8 @@ import qualified Routes.Mentions
 import qualified Routes.SaveCredentials
 import qualified Routes.SignIn
 import qualified Routes.UserSearch
-import Servant ((:<|>) ((:<|>)), (:>), Delete, Get, JSON, QueryParam, Server)
+import Servant
+    ((:<|>) ((:<|>)), (:>), Delete, Get, Header, JSON, QueryParam, Server)
 import Twitter (Timeline)
 import Types
     ( DBActionRunner
@@ -45,6 +46,7 @@ type Api =
             :> QueryParam "oauth_verifier" String :> Get '[JSON] InfoMsg
     :<|> "app-get-access"
             :> Authenticate
+            :> Header "x-app-token" String
             :> Get '[JSON] Routes.AppGetAccess.ReturnType
     :<|> "app-revoke-access"
             :> Authenticate
