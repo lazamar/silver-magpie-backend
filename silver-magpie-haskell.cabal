@@ -50,6 +50,7 @@ executable silver-magpie
         SafeHttp
         Twitter
         Routes.AppGetAccess
+        Routes.Favorite
         Routes.AppRevokeAccess
         Routes.SignIn
         Routes.SaveCredentials

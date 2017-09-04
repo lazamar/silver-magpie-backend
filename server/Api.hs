@@ -14,6 +14,7 @@ import MongoTypes.AppAuth (AppAuth)
 import Network.HTTP.Client (Manager)
 import qualified Routes.AppGetAccess
 import qualified Routes.AppRevokeAccess
+import qualified Routes.Favorite
 import qualified Routes.Home
 import qualified Routes.Mentions
 import qualified Routes.SaveCredentials
@@ -80,6 +81,14 @@ type Api =
             :> Authenticate
             :> ReqBody '[JSON] Routes.StatusUpdate.StatusBody
             :> Post '[JSON] Value
+    :<|> "favorite"
+            :> Authenticate
+            :> QueryParam "id" String
+            :> Post '[JSON] Value
+    :<|> "favorite"
+            :> Authenticate
+            :> QueryParam "id" String
+            :> Delete '[JSON] Value
 
 -------------------------------------------------------------------------------
 --                               Handlers
@@ -98,6 +107,8 @@ apiServer env runDbAction manager =
     :<|>    Routes.Mentions.get oauth manager
     :<|>    Routes.UserSearch.get oauth manager
     :<|>    Routes.StatusUpdate.post oauth manager
+    :<|>    Routes.Favorite.post oauth manager
+    :<|>    Routes.Favorite.delete oauth manager
 
 
 twitterOAuth :: EnvironmentVariables -> OAuth.OAuth

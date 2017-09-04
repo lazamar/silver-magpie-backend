@@ -4,6 +4,7 @@
 module Twitter
     ( queryApi
     , asValue
+    , postFavorite
     , postStatusUpdate
     , fetchTimeline
     , tweets -- just for the compiler to be happy
@@ -212,3 +213,27 @@ postStatusUpdate oauth manager userDetails mStatus mInReplyToStatusId =
             [ ("status", mStatus)
             , ("in_reply_to_status_id", mInReplyToStatusId)
             ]
+
+postFavorite :: OAuth
+    -> Manager
+    -> UserDetails
+    -> Bool
+    -> Maybe String
+    -> IO (Either String Value)
+postFavorite oauth manager userDetails isFavorite mTweetId =
+    asValue <$>
+    queryApi
+        "POST"
+        url
+        [("id", mTweetId)]
+        oauth
+        manager
+        userDetails
+    where
+        url =
+            "https://api.twitter.com/1.1/favorites/"
+            ++
+                if isFavorite then
+                    "create.json"
+                else
+                    "destroy.json"
