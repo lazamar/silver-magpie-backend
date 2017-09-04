@@ -3,8 +3,8 @@
 
 module Twitter
     ( queryApi
-    , get
     , asValue
+    , postStatusUpdate
     , fetchTimeline
     , tweets -- just for the compiler to be happy
     , searchUser
@@ -28,10 +28,10 @@ import Network.HTTP.Client
     , queryString
     , responseBody
     )
+import qualified Network.URI.Encode as URI
 import SafeHttp (safeRequest)
 import Web.Authenticate.OAuth (OAuth)
 import qualified Web.Authenticate.OAuth as OAuth
-
 
 {-
     Query the Twitter API and return the raw response as a ByteString
@@ -78,7 +78,7 @@ queryApi  cMethod url queryList oauth manager userDetails =
 toQueryVariable :: (String, Maybe String) -> Maybe String
 toQueryVariable (_, Nothing) = Nothing
 toQueryVariable (a, Just b) =
-    Just $ a ++ "=" ++ b
+    Just $ URI.encode a ++ "=" ++ URI.encode b
 
 
 filterMap :: (a -> Maybe b) -> [a] -> [b]
@@ -107,15 +107,6 @@ asValue eitherResponse =
                 (Left "Failed to decode twitter response")
                 Right
                 (decode json :: Maybe Value)
-
-
-get :: String
-    -> [(String, Maybe String)]
-    -> OAuth
-    -> Manager
-    -> UserDetails
-    ->  IO (Either String (Response LB.ByteString))
-get = queryApi "GET"
 
 
 -------------------------------------------------------------------------------
@@ -151,7 +142,8 @@ fetchTimeline :: WhichTimeline
 fetchTimeline timeline mSinceId mMaxId oauth manager userDetails  =
     fmap Timeline <$>
     asValue <$>
-        get
+        queryApi
+            "GET"
             url
             queryList
             oauth
@@ -185,7 +177,8 @@ searchUser :: OAuth
     -> IO (Either String Value)
 searchUser oauth manager userDetails mQuery =
     asValue <$>
-    get
+    queryApi
+        "GET"
         "https://api.twitter.com/1.1/users/search.json"
         queryList
         oauth
@@ -196,4 +189,26 @@ searchUser oauth manager userDetails mQuery =
             [ ("q", mQuery)
             , ("include_entities", Just "false")
             , ("count", Just "5")
+            ]
+
+
+postStatusUpdate :: OAuth
+    -> Manager
+    -> UserDetails
+    -> Maybe String
+    -> Maybe String
+    -> IO (Either String Value)
+postStatusUpdate oauth manager userDetails mStatus mInReplyToStatusId =
+    asValue <$>
+    queryApi
+        "POST"
+        "https://api.twitter.com/1.1/statuses/update.json"
+        queryList
+        oauth
+        manager
+        userDetails
+    where
+        queryList =
+            [ ("status", mStatus)
+            , ("in_reply_to_status_id", mInReplyToStatusId)
             ]

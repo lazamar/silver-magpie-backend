@@ -18,9 +18,20 @@ import qualified Routes.Home
 import qualified Routes.Mentions
 import qualified Routes.SaveCredentials
 import qualified Routes.SignIn
+import qualified Routes.StatusUpdate
 import qualified Routes.UserSearch
 import Servant
-    ((:<|>) ((:<|>)), (:>), Delete, Get, Header, JSON, QueryParam, Server)
+    ( (:<|>) ((:<|>))
+    , (:>)
+    , Delete
+    , Get
+    , Header
+    , JSON
+    , Post
+    , QueryParam
+    , ReqBody
+    , Server
+    )
 import Twitter (Timeline)
 import Types
     ( DBActionRunner
@@ -65,6 +76,10 @@ type Api =
             :> Authenticate
             :> QueryParam "q" String
             :> Get '[JSON] Value
+    :<|> "status-update"
+            :> Authenticate
+            :> ReqBody '[JSON] Routes.StatusUpdate.StatusBody
+            :> Post '[JSON] Value
 
 -------------------------------------------------------------------------------
 --                               Handlers
@@ -82,6 +97,7 @@ apiServer env runDbAction manager =
     :<|>    Routes.Home.get oauth manager
     :<|>    Routes.Mentions.get oauth manager
     :<|>    Routes.UserSearch.get oauth manager
+    :<|>    Routes.StatusUpdate.post oauth manager
 
 
 twitterOAuth :: EnvironmentVariables -> OAuth.OAuth
