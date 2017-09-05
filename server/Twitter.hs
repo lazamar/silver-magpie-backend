@@ -6,6 +6,7 @@ module Twitter
     , asValue
     , postFavorite
     , postStatusUpdate
+    , postRetweet
     , fetchTimeline
     , tweets -- just for the compiler to be happy
     , searchUser
@@ -18,6 +19,8 @@ import Data.Aeson.Types (ToJSON)
 import qualified Data.ByteString.Char8 as B
 import qualified Data.ByteString.Lazy.Char8 as LB
 import Data.List (intercalate)
+import Data.Maybe (fromMaybe)
+import Debug.Trace (traceShowId)
 import GHC.Generics (Generic)
 import MongoTypes.UserDetails (UserDetails, oauthToken, oauthTokenSecret)
 import Network.HTTP.Client
@@ -33,7 +36,6 @@ import qualified Network.URI.Encode as URI
 import SafeHttp (safeRequest)
 import Web.Authenticate.OAuth (OAuth)
 import qualified Web.Authenticate.OAuth as OAuth
-
 {-
     Query the Twitter API and return the raw response as a ByteString
     Other methods will interact with the API through this one.
@@ -237,3 +239,31 @@ postFavorite oauth manager userDetails isFavorite mTweetId =
                     "create.json"
                 else
                     "destroy.json"
+
+
+postRetweet :: OAuth
+    -> Manager
+    -> UserDetails
+    -> Bool
+    -> Maybe String
+    -> IO (Either String Value)
+postRetweet oauth manager userDetails shouldRetweet mTweetId =
+    asValue <$>
+    queryApi
+        "POST"
+        url
+        [("id", mTweetId)]
+        oauth
+        manager
+        userDetails
+    where
+        tweetId =
+            fromMaybe "" mTweetId
+
+        endpoint =
+            if shouldRetweet then
+                "retweet"
+            else
+                "unretweet"
+        url =
+            traceShowId $ "https://api.twitter.com/1.1/statuses/" ++ endpoint ++ "/" ++ tweetId ++ ".json"

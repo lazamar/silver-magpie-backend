@@ -17,6 +17,7 @@ import qualified Routes.AppRevokeAccess
 import qualified Routes.Favorite
 import qualified Routes.Home
 import qualified Routes.Mentions
+import qualified Routes.Retweet
 import qualified Routes.SaveCredentials
 import qualified Routes.SignIn
 import qualified Routes.StatusUpdate
@@ -89,6 +90,14 @@ type Api =
             :> Authenticate
             :> QueryParam "id" String
             :> Delete '[JSON] Value
+    :<|> "retweet"
+            :> Authenticate
+            :> QueryParam "id" String
+            :> Post '[JSON] Value
+    :<|> "retweet"
+            :> Authenticate
+            :> QueryParam "id" String
+            :> Delete '[JSON] Value
 
 -------------------------------------------------------------------------------
 --                               Handlers
@@ -109,7 +118,8 @@ apiServer env runDbAction manager =
     :<|>    Routes.StatusUpdate.post oauth manager
     :<|>    Routes.Favorite.post oauth manager
     :<|>    Routes.Favorite.delete oauth manager
-
+    :<|>    Routes.Retweet.post oauth manager
+    :<|>    Routes.Retweet.delete oauth manager
 
 twitterOAuth :: EnvironmentVariables -> OAuth.OAuth
 twitterOAuth env =
