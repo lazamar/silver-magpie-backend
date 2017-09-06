@@ -1,110 +1,133 @@
 .Landing-container {
-  position: relative;
-  max-width: 720px;
-  text-align: center;
-  display: flex;
-  flex-flow: column nowrap;
-  min-height: 100vh;
-  overflow: hidden
+    position: relative;
+    max-width: 720px;
+    text-align: center;
+    display: flex;
+    flex-flow: column nowrap;
+    min-height: 100vh;
+    margin: auto;
 }
 
 .Landing-logo-container {
-  margin: 3em auto 3em;
-  position: relative;
+    margin: 3em auto 3em;
+    position: relative;
 }
 
 @-webkit-keyframes titleFadeInDown1 {
-  from { transform: translate3D(20px, 10px, 0); opacity: .5 }
-  to { opacity: 1 }
+    from {
+        transform: translate3D(20px, 10px, 0);
+        opacity: .5;
+    }
+    to {
+        opacity: 1;
+    }
 }
 
 @-webkit-keyframes titleFadeInDown2 {
-  from { transform: translate3D(-20px, 10px, 0); opacity: .5 }
-  to { opacity: 1 }
+    from {
+        transform: translate3D(-20px, 10px, 0);
+        opacity: .5;
+    }
+    to {
+        opacity: 1;
+    }
 }
 
 .Landing-title {
-  pointer-events: none;
-  user-select: none;
-  width: 100%;
-  animation-duration: 5s;
-  animation-timing-function: ease-out;
-  animation-fill-mode: forwards;
-  z-index: -1;
+    pointer-events: none;
+    user-select: none;
+    width: 100%;
+    animation-duration: 5s;
+    animation-timing-function: ease-out;
+    animation-fill-mode: forwards;
+    z-index: -1;
 
-  &:nth-of-type(1) {
-    animation-name: titleFadeInDown1;
-  }
+    &:nth-of-type(1) {
+        animation-name: titleFadeInDown1;
+    }
 
-  &:nth-of-type(2) {
-    animation-name: titleFadeInDown2;
-  }
+    &:nth-of-type(2) {
+        animation-name: titleFadeInDown2;
+    }
 }
 
 @-webkit-keyframes logoFadeInDown {
-  from { transform: translateY(-30px); opacity: .5 }
-  to { transform: translateY(0px); opacity: 1 }
+    from {
+        transform: translateY(-30px);
+        opacity: .5;
+    }
+    to {
+        transform: translateY(0px);
+        opacity: 1;
+    }
 }
 
 .Landing-logo {
-  position: absolute;
-  top: 0;
-  left:0;
-  right: 0;
-  bottom: 0;
-  width: 200px;
-  margin: auto;
-  max-width: 50%;
-  display: block;
-  animation: logoFadeInDown 1s ease-out forwards;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 200px;
+    margin: auto;
+    max-width: 50%;
+    display: block;
+    animation: logoFadeInDown 1s ease-out forwards;
 }
 
-
 .Landing-content-info {
-  @extend .Common-infoCard;
+    @extend .Common-infoCard;
 }
 
 .Landing-download {
-  @extend .Common-infoCard;
-  background-color: $brand-info;
-  margin: 2em auto;
-  transition: all .1s ease;
+    @extend .Common-infoCard;
+    background-color: $brand-info;
+    margin: 2em auto;
+    transition: all .1s ease;
 
-  &, &:hover, &:active, &:focus, &:visited {
-    color: white;
-    text-decoration: none;
-  }
+    &,
+    &:hover,
+    &:active,
+    &:focus,
+    &:visited {
+        color: white;
+        text-decoration: none;
+    }
 
-  &:hover {
-    background-color: darken($brand-info, 3%);
-  }
+    &:hover {
+        background-color: darken($brand-info, 3%);
+    }
 }
 
-
 @-webkit-keyframes footerFadeInUp {
-  0% { transform: translateY(5px); opacity: 0 }
-  100% { transform: translateY(0px); opacity: 1 }
+    0% {
+        transform: translateY(5px);
+        opacity: 0;
+    }
+    100% {
+        transform: translateY(0px);
+        opacity: 1;
+    }
 }
 
 .Landing-footer {
-  margin: auto auto 3em;
-  padding-top: 2em;
-  height: 3em;
-  font-ize: .9em;
-  opacity: 0;
-  animation: footerFadeInUp 1s ease-in-out forwards;
+    margin: auto auto 3em;
+    padding-top: 2em;
+    height: 3em;
+    font-ize: .9em;
+    opacity: 0;
+    animation: footerFadeInUp 1s ease-in-out forwards;
 
-  p {
-    text-align: center;
-    margin-bottom: .2em;
-    color: #455A64;
-  }
+    p {
+        text-align: center;
+        margin-bottom: .2em;
+        color: #455a64;
+    }
 }
 
 .Landing-footer-heartIcon {
-  color: #e61865;
-  font-size: 0.9em;
-  position: relative;
-  top: .05em;
-  margin: 0 .1em;
+    color: #e61865;
+    font-size: 0.9em;
+    position: relative;
+    margin: 0 .1em;
 }

@@ -1,10 +1,15 @@
 .Common-infoCard {
-  position: relative;
-  display: inline-block;
-  border-radius: 3px;
-  background-color: #607D8B;
-  color: white;
-  padding: 1em;
-  text-align: center;
-  margin: 0 auto;
+    position: relative;
+    display: inline-block;
+    border-radius: 3px;
+    background-color: #607d8b;
+    color: white;
+    padding: 1em;
+    text-align: center;
+    margin: 0 auto;
+}
+
+a {
+    color: #4285f4;
+    text-decoration: none;
 }
