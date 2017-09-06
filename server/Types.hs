@@ -23,6 +23,9 @@ data EnvironmentVariables = EnvironmentVariables
     , domain        :: Text
     , dbName        :: Text
     , dbUrl         :: Text
+    , dbPort        :: Int
+    , dbUsername    :: Text
+    , dbPassword    :: Text
     , twitterKey    :: Text
     , twitterSecret :: Text
     }

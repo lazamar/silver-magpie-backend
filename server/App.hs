@@ -4,12 +4,12 @@
 {-# LANGUAGE TypeOperators     #-}
 
 module App (runApp) where
-
 import Api (Api, apiServer)
 import Authenticate (authContext)
-import Data.Text (Text)
+import Data.Bool (bool)
 import qualified Data.Text as T
-import Database.MongoDB (Pipe, access, connect, master, readHostPort)
+import Database.MongoDB
+    (Host (Host), Pipe, PortID (PortNumber), access, auth, connect, master)
 import qualified Database.MongoDB.Query as Query
 import Network.HTTP.Client (Manager)
 import Network.HTTP.Client.TLS (newTlsManager)
@@ -26,7 +26,10 @@ import Servant
     , serveWithContext
     )
 import Servant.Utils.StaticFiles (serveDirectoryFileServer)
-import Types (DBActionRunner, EnvironmentVariables (dbName, dbUrl, port))
+import Types
+    ( DBActionRunner
+    , EnvironmentVariables (dbName, dbPassword, dbPort, dbUrl, dbUsername, port)
+    )
 
 -------------------------------------------------------------------------------
 --                               App
@@ -36,29 +39,45 @@ import Types (DBActionRunner, EnvironmentVariables (dbName, dbUrl, port))
 runApp :: EnvironmentVariables -> IO ()
 runApp env = do
     putStrLn $ "Running server on port " ++ show (port env)
-    pipe <- getDbPipe (dbUrl env)
+
+    -- DATABASE SETUP
+    pipe <- connectToMongo env
+    let runDbAction = createActionRunner pipe (dbName env)
+    authenticated <- authenticateConnection env runDbAction
+    putStrLn $ "Database authentication " ++ bool "failed" "succeeded" authenticated
+
+    -- SERVER START
     manager <- newTlsManager
-    let dbRunner = generateRunner pipe (dbName env)
-        serverApp = app env dbRunner manager
+    let
+        serverApp = app env runDbAction manager
         portName = port env
     run portName serverApp
 
-getDbPipe :: Text -> IO Pipe
-getDbPipe databaseUrl =
-    connect $readHostPort $ T.unpack databaseUrl
 
-generateRunner :: Pipe -> Query.Database -> DBActionRunner
-generateRunner pipe database =
+connectToMongo :: EnvironmentVariables -> IO Pipe
+connectToMongo env =
+    connect
+        $ Host (T.unpack $ dbUrl env)
+        $ PortNumber (read $ show $ dbPort env)
+
+-- After we generate a Pipe, we need to authenticate that pipe for it to work
+authenticateConnection :: EnvironmentVariables -> DBActionRunner -> IO Bool
+authenticateConnection env runDbAction =
+    runDbAction $ auth (dbUsername env) (dbPassword env)
+
+
+createActionRunner :: Pipe -> Query.Database -> DBActionRunner
+createActionRunner pipe database =
     access pipe master database
 
 
 app :: EnvironmentVariables -> DBActionRunner -> Manager -> Application
-app env dbRunner manager =
+app env runDbAction manager =
     serveWithCORS $
         serveWithContext
             withAssetsProxy
-            (authContext dbRunner)
-            $ server env dbRunner manager
+            (authContext runDbAction)
+            $ server env runDbAction manager
 
 {- Allow CORS and allow certain headers in CORS requests -}
 serveWithCORS :: Middleware
@@ -81,8 +100,8 @@ withAssetsProxy =
         Proxy
 
 server :: EnvironmentVariables -> DBActionRunner -> Manager -> Server WithAssets
-server env dbRunner manager =
-    apiServer env dbRunner manager :<|> serveAssets
+server env runDbAction manager =
+    apiServer env runDbAction manager :<|> serveAssets
 
 serveAssets :: Server Raw
 serveAssets =
