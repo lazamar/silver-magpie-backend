@@ -12,7 +12,7 @@ import Types (EnvironmentVariables)
 loadEnvironment :: IO (Either String EnvironmentVariables)
 loadEnvironment = do
     envWithParseException <-
-        Yaml.decodeFileEither "env.yaml"
+        Yaml.decodeFileEither "_env/env.yaml"
         :: IO (Either Yaml.ParseException EnvironmentVariables)
     -- Transform ParseException into Text
     return $ mapLeft show envWithParseException
