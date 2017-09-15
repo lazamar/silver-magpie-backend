@@ -42,7 +42,7 @@ docker-build:
 docker-run:
 	docker rm -f $(shell docker ps -q) ; \
 	docker run \
-		-p 80:8080 \
+		-p 8081:8080 \
 		-v $(shell pwd)/_env:/home/app/_env \
 		-d \
 		$(IMAGE)
