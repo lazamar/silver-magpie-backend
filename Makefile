@@ -20,8 +20,9 @@ watch:
 	stack build --file-watch --pedantic
 
 # Will create and start the server running on port 80
+# Will show the output on terminal as well as save it to a file
 deploy:
-	make docker-deploy > _logs/$(DATE)--$(TIME)--$(COMMMIT_HASH).log 2>&1
+	make docker-deploy 2>&1 | tee _logs/$(DATE)--$(TIME)--$(COMMMIT_HASH).log
 
 # ============== PRIVATE TARGETS =====================
 # Rules below are not public
