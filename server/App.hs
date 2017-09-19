@@ -16,7 +16,7 @@ import Network.HTTP.Client.TLS (newTlsManager)
 import Network.Wai (Middleware)
 import Network.Wai.Handler.Warp (run)
 import Network.Wai.Middleware.Cors
-    (cors, corsRequestHeaders, simpleCorsResourcePolicy)
+    (cors, corsMethods, corsRequestHeaders, simpleCorsResourcePolicy)
 import Servant
     ( (:<|>) ((:<|>))
     , Application
@@ -87,6 +87,7 @@ serveWithCORS =
             corsPolicy =
                 simpleCorsResourcePolicy
                     { corsRequestHeaders = ["x-app-token"]
+                    , corsMethods = ["GET", "POST", "DELETE"]
                     }
 
 -------------------------------------------------------------------------------
