@@ -86,7 +86,7 @@ serveWithCORS =
         where
             corsPolicy =
                 simpleCorsResourcePolicy
-                    { corsRequestHeaders = ["x-app-token"]
+                    { corsRequestHeaders = ["x-app-token", "content-type"]
                     , corsMethods = ["GET", "POST", "DELETE"]
                     }
 
