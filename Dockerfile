@@ -1,4 +1,4 @@
-FROM haskell
+FROM haskell:8.0.2
 
 # Copy source into Docker image
 COPY ./ /home/app/
