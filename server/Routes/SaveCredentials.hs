@@ -3,32 +3,25 @@
 
 module Routes.SaveCredentials (get) where
 
-import Control.Monad.IO.Class (liftIO)
-import qualified Data.Bson as Bson
-import qualified Data.ByteString.Char8 as ByteString
+import           Control.Monad.IO.Class     (liftIO)
+import qualified Data.Bson                  as Bson
+import qualified Data.ByteString.Char8      as ByteString
 import qualified Data.ByteString.Lazy.Char8 as LByteString
-import Data.Either.Combinators (mapLeft)
-import Database.MongoDB.Query (Action)
-import qualified Database.MongoDB.Query as Mongo
-import MongoTypes.UserDetails
-    ( UserDetails (UserDetails)
-    , accessRequestToken
-    , oauthToken
-    , oauthTokenSecret
-    , screenName
-    , toBSON
-    , userId
-    )
-import Network.HTTP.Client (Manager, Response, responseBody)
-import Network.HTTP.Types.Header (hLocation)
-import SafeHttp (safeRequest)
-import Servant
-    (Handler, err301, err400, err500, errBody, errHeaders, throwError)
-import Types (DBActionRunner, InfoMsg)
-import Web.Authenticate.OAuth (unCredential)
-import qualified Web.Authenticate.OAuth as OAuth
-
-
+import           Data.Either.Combinators    (mapLeft)
+import           Database.MongoDB.Query     (Action)
+import qualified Database.MongoDB.Query     as Mongo
+import           MongoTypes.UserDetails     (UserDetails (UserDetails),
+                                             accessRequestToken, oauthToken,
+                                             oauthTokenSecret, screenName,
+                                             toBSON, userId)
+import           Network.HTTP.Client        (Manager, Response, responseBody)
+import           Network.HTTP.Types.Header  (hLocation)
+import           SafeHttp                   (safeRequest)
+import           Servant                    (Handler, err301, err400, err500,
+                                             errBody, errHeaders, throwError)
+import           Types                      (DBActionRunner, InfoMsg)
+import           Web.Authenticate.OAuth     (unCredential)
+import qualified Web.Authenticate.OAuth     as OAuth
 {-
     The user is taken here after he authorises the application with twitter
     Here we save his authorisation data.
@@ -38,21 +31,20 @@ get :: OAuth.OAuth -> DBActionRunner -> Manager -> Maybe String -> Maybe String 
 get _ _ _ Nothing _ = throwError err400
 get _ _ _ _ Nothing = throwError err400
 get oauth runDBAction manager (Just requestToken) (Just requestVerifier) =
-    (=<<) handleDetails
-        $ liftIO
-        $ (=<<) (toUserDetails requestToken)
-        <$> getAccessToken
-                manager
-                oauth
-                requestToken
-                requestVerifier
+    do
+        eitherCredentials <- liftIO $ getAccessToken manager oauth requestToken requestVerifier
+        let
+            eitherDetails = eitherCredentials >>= toUserDetails requestToken
+        handleDetails eitherDetails
+
     where
         handleDetails (Left err) =
             throwError $ err500 { errBody = LByteString.pack err }
 
         handleDetails (Right userDetails) =
-            liftIO (runDBAction $ saveUserDetails userDetails)
-            >> redirectTo "./thank-you.html"
+            do
+                _ <- liftIO (runDBAction $ saveUserDetails userDetails)
+                redirectTo "./thank-you.html"
 
 
 getAccessToken :: Manager -> OAuth.OAuth -> String -> String -> IO (Either String OAuth.Credential)
