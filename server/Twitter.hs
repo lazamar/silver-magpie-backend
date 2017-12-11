@@ -14,28 +14,23 @@ module Twitter
     , Timeline
     ) where
 
-import Data.Aeson (Value, decode)
-import Data.Aeson.Types (ToJSON)
-import qualified Data.ByteString.Char8 as B
+import           Data.Aeson                 (Value, decode)
+import           Data.Aeson.Types           (ToJSON)
+import qualified Data.ByteString.Char8      as B
 import qualified Data.ByteString.Lazy.Char8 as LB
-import Data.List (intercalate)
-import Data.Maybe (fromMaybe)
-import Debug.Trace (traceShowId)
-import GHC.Generics (Generic)
-import MongoTypes.UserDetails (UserDetails, oauthToken, oauthTokenSecret)
-import Network.HTTP.Client
-    ( Manager
-    , Response
-    , httpLbs
-    , method
-    , parseRequest
-    , queryString
-    , responseBody
-    )
-import qualified Network.URI.Encode as URI
-import SafeHttp (safeRequest)
-import Web.Authenticate.OAuth (OAuth)
-import qualified Web.Authenticate.OAuth as OAuth
+import           Data.List                  (intercalate)
+import           Data.Maybe                 (fromMaybe)
+import           Debug.Trace                (traceShowId)
+import           GHC.Generics               (Generic)
+import           MongoTypes.UserDetails     (UserDetails, oauthToken,
+                                             oauthTokenSecret)
+import           Network.HTTP.Client        (Manager, Response, httpLbs, method,
+                                             parseRequest, queryString,
+                                             responseBody)
+import qualified Network.URI.Encode         as URI
+import           SafeHttp                   (safeRequest)
+import           Web.Authenticate.OAuth     (OAuth)
+import qualified Web.Authenticate.OAuth     as OAuth
 {-
     Query the Twitter API and return the raw response as a ByteString
     Other methods will interact with the API through this one.
@@ -157,6 +152,7 @@ fetchTimeline timeline mSinceId mMaxId oauth manager userDetails  =
         queryList =
             [ ("max_id", mMaxId >>= removeEmpty)
             , ("since_id", mSinceId >>= removeEmpty)
+            , ("tweet_mode", Just "extended") -- Show tweets with 280 characters
             ]
 
         url =
