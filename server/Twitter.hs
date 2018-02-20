@@ -18,6 +18,7 @@ import           Data.Aeson                 (Value, decode)
 import           Data.Aeson.Types           (ToJSON)
 import qualified Data.ByteString.Char8      as B
 import qualified Data.ByteString.Lazy.Char8 as LB
+import           Data.Function              ((&))
 import           Data.List                  (intercalate)
 import           Data.Maybe                 (fromMaybe)
 import           Debug.Trace                (traceShowId)
@@ -29,6 +30,7 @@ import           Network.HTTP.Client        (Manager, Response, httpLbs, method,
                                              responseBody)
 import qualified Network.URI.Encode         as URI
 import           SafeHttp                   (safeRequest)
+import           Text.Read                  (readMaybe)
 import           Web.Authenticate.OAuth     (OAuth)
 import qualified Web.Authenticate.OAuth     as OAuth
 {-
@@ -150,7 +152,7 @@ fetchTimeline timeline mSinceId mMaxId oauth manager userDetails  =
 
     where
         queryList =
-            [ ("max_id", mMaxId >>= removeEmpty)
+            [ ("max_id", mMaxId >>= minusOne)
             , ("since_id", mSinceId >>= removeEmpty)
             , ("tweet_mode", Just "extended") -- Show tweets with 280 characters
             ]
@@ -158,12 +160,14 @@ fetchTimeline timeline mSinceId mMaxId oauth manager userDetails  =
         url =
             "https://api.twitter.com/1.1/statuses/" ++ show timeline ++ ".json"
 
-        removeEmpty v =
-            if null v then
-                Nothing
-            else
-                Just v
+        minusOne str =
+            str
+            & (\v -> readMaybe v :: Maybe Integer)
+            & fmap (show . flip (-) 1)
 
+        removeEmpty str
+            | null str = Nothing
+            | otherwise = Just str
 
 -------------------------------------------------------------------------------
 --------------------------------- USERS ---------------------------------------
