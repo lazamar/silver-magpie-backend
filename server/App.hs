@@ -25,7 +25,7 @@ import Servant
     , Server
     , serveWithContext
     )
-import Servant.Utils.StaticFiles (serveDirectoryFileServer)
+import Servant.Server.StaticFiles (serveDirectoryFileServer)
 import Types
     ( DBActionRunner
     , EnvironmentVariables (dbName, dbPassword, dbPort, dbUrl, dbUsername, port)

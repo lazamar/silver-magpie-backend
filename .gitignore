@@ -3,3 +3,6 @@
 .env
 env.yaml
 *.log
+dist
+dist-newstyle
+tags
