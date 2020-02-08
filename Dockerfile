@@ -1,4 +1,4 @@
-FROM haskell:8.0.2
+FROM haskell:8.6.5
 
 # Copy source into Docker image
 COPY ./ /home/app/
@@ -10,4 +10,4 @@ RUN stack build
 EXPOSE 8080
 
 # Start server
-CMD ["/usr/local/bin/stack", "exec", "silver-magpie"]
+CMD ["/usr/local/bin/stack", "exec", "silver-magpie-backend"]
