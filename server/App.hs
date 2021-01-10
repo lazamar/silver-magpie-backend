@@ -7,7 +7,7 @@ module App (runApp) where
 
 import Api (Api, apiServer)
 import Authenticate (authContext)
-import Control.Monad.Database.MongoDB
+import Control.Monad.Database.SQLite
 import Data.Bool (bool)
 import Database.MongoDB
     ( Host (Host),
