@@ -1,6 +1,23 @@
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 
-module Control.Monad.Database where
+module Control.Monad.Database
+    ( FromRecord (..),
+      ToRecord (..),
+      IsValue (..),
+      MonadDB (..),
+      Target (..),
+      Collection (..),
+      Database (..),
+      FieldValue (..),
+      Selector (..),
+      Delete (..),
+      Insert (..),
+    )
+where
 
 -- | A simple monad to abstract over the database implementation.
 --
@@ -12,7 +29,14 @@ module Control.Monad.Database where
 --
 --    database -> collection -> record -> field
 
--- | Parse the value form the database
+class MonadDB m where
+    type Record m :: * -- ^ A way to represent data in a collection
+    type Value m :: * -- ^ A way to represent attributes of data in a collection
+    store :: ToRecord m a => Target -> Insert m a -> m ()
+    retrieve :: FromRecord m a => Target -> Selector m -> m [a]
+    delete :: Target -> Delete m -> m ()
+
+-- | Parse value from a database collection
 class FromRecord m a where
     fromRecord :: Record m -> a
 
@@ -20,31 +44,29 @@ class FromRecord m a where
 class ToRecord m a where
     toRecord :: a -> Record m
 
-class MonadDB m where
-    data Record m :: *
-    retrieve :: FromRecord m a => Query a -> m a
-    store :: ToRecord m a => Insert a -> m ()
+-- | A type that represents attributes of a collection's content
+class IsValue m a where
+    toValue :: a -> Value m
 
+-- The target of a database operation
 data Target = Target Database Collection
 
 -- | A database is a group of collections
 newtype Database = Database String
 
-database :: String -> Database
-database = Database
-
 -- | A collection of records
 newtype Collection = Collection String
 
-collection :: String -> Collection
-collection = Collection
+-- | Label and content of a field
+data FieldValue m where
+    FieldValue :: IsValue m a => String -> a -> FieldValue m
 
-type FieldValue = FieldValue String String
+data Selector m
+    = SelectOne [FieldValue m]
 
-data Query a
-    = SelectMany [FieldValue]
-    | SelectOne [FieldValue]
-
-data Insert a
+data Insert m a
     = Insert a
-    | Update [FieldValue] a
+    | Update [FieldValue m] a
+
+data Delete m
+    = DeleteMany [FieldValue m]

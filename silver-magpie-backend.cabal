@@ -108,7 +108,9 @@ executable silver-magpie-backend
     servant,
     servant-server,
     errors,
-    mongoDB
+    mongoDB,
+    mtl,
+    transformers
 
   -- Directories containing source files.
   hs-source-dirs:      server
