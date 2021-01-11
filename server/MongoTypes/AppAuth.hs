@@ -3,49 +3,48 @@
 module MongoTypes.AppAuth where
 
 import Data.Aeson.Types
-    ( FromJSON
-    , ToJSON
-    , object
-    , pairs
-    , parseJSON
-    , toEncoding
-    , toJSON
-    , withObject
-    , (.:)
-    , (.=)
+    ( FromJSON,
+      ToJSON,
+      object,
+      pairs,
+      parseJSON,
+      toEncoding,
+      toJSON,
+      withObject,
+      (.:),
+      (.=),
     )
-import qualified Data.Bson as Bson
 import Data.Monoid ((<>))
+import qualified Data.Bson as Bson
 import qualified Data.Text as T
-
+import qualified Database.SQLite.Simple as SQL
 
 collectionName :: T.Text
 collectionName =
     "app-authorisation"
 
-
 keyAppSessionId :: T.Text
 keyAppSessionId =
     "app_session_id"
-
 
 keyAccessRequestToken :: T.Text
 keyAccessRequestToken =
     "access_request_token"
 
-
 data AppAuth = AppAuth
-    { appSessionId       :: String
+    { appSessionId :: String
     , accessRequestToken :: String
     }
     deriving (Show)
 
+instance SQL.FromRow AppAuth where
+    fromRow = AppAuth <$> SQL.field <*> SQL.field
 
 instance FromJSON AppAuth where
-    parseJSON = withObject "AppAuth" $ \v -> AppAuth
-        <$> v .: keyAppSessionId
-        <*> v .: keyAccessRequestToken
-
+    parseJSON = withObject "AppAuth" $ \v ->
+        AppAuth
+            <$> v .: keyAppSessionId
+            <*> v .: keyAccessRequestToken
 
 instance ToJSON AppAuth where
     -- this generates a Value
@@ -59,15 +58,14 @@ instance ToJSON AppAuth where
     toEncoding (AppAuth sId aToken) =
         pairs
             ( keyAppSessionId .= sId
-            <> keyAccessRequestToken .= aToken
+                  <> keyAccessRequestToken .= aToken
             )
-
 
 fromBSON :: Bson.Document -> Either String AppAuth
 fromBSON doc =
     do
-        sessionId     <- getProp (keyAppSessionId::T.Text)
-        requestToken  <- getProp (keyAccessRequestToken::T.Text)
+        sessionId <- getProp (keyAppSessionId :: T.Text)
+        requestToken <- getProp (keyAccessRequestToken :: T.Text)
         return
             AppAuth
                 { appSessionId = sessionId

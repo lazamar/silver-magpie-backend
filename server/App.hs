@@ -1,19 +1,19 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE DerivingStrategies #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TypeOperators #-}
 
 module App (runApp) where
 
-import Control.Monad.Except (ExceptT(..))
-import Control.Monad.Conc.Class (MonadConc)
 import Api (Api, apiServer)
-import Authenticate (authContext, AuthContext)
+import Authenticate (AuthContext, authContext)
+import Control.Monad.Conc.Class (MonadConc)
 import Control.Monad.Database.SQLite
+import Control.Monad.Except (ExceptT (..))
 import Data.Bool (bool)
 import Database.MongoDB
     ( Host (Host),
@@ -35,31 +35,32 @@ import Network.Wai.Middleware.Cors
       simpleCorsResourcePolicy,
     )
 import Servant
-    ( Application
-    , Proxy (Proxy)
-    , Raw
-    , Server
-    , Handler(..)
-    , ServerT(..)
-    , ServerError(..)
-    , serveWithContext
-    , hoistServerWithContext
-    , hoistServer
-    , (:<|>) ((:<|>))
+    ( Application,
+      Handler (..),
+      Proxy (Proxy),
+      Raw,
+      Server,
+      ServerError (..),
+      ServerT (..),
+      hoistServer,
+      hoistServerWithContext,
+      serveWithContext,
+      (:<|>) ((:<|>)),
     )
 import Servant.Server.StaticFiles (serveDirectoryFileServer)
 import Types
-    ( HandlerM
-    , DBActionRunner
-    , EnvironmentVariables (dbName , dbPassword , dbPort , dbUrl , dbUsername , port),
+    ( DBActionRunner,
+      EnvironmentVariables (dbName , dbPassword , dbPort , dbUrl , dbUsername , port),
+      HandlerM,
     )
 import qualified Data.Text as T
 import qualified Database.MongoDB.Query as Query
+import qualified MongoTypes.AppAuth as AppAuth
+import qualified MongoTypes.UserDetails as UserDetails
 
 -------------------------------------------------------------------------------
 --                               App
 -------------------------------------------------------------------------------
-
 
 runApp :: EnvironmentVariables -> IO ()
 runApp env = do
@@ -81,6 +82,11 @@ newtype StackRunner m n = S (forall a. m a -> n a)
 -- TODO database name must be set by the environment variables
 stackRunner :: EnvironmentVariables -> StackRunner Stack Handler
 stackRunner _ = S $ Handler . runMonadSQL "./database/DB.sql"
+    where
+        collections =
+            [ UserDetails.collectionName
+            , AppAuth.collectionName
+            ]
 
 connectToMongo :: EnvironmentVariables -> IO Pipe
 connectToMongo env =
@@ -97,7 +103,8 @@ connectToMongo env =
 -- createActionRunner pipe database =
 --     access pipe master database
 
-app :: ()
+app
+    :: ()
     => (forall a. Stack a -> Handler a)
     -> EnvironmentVariables
     -> DBActionRunner Stack
@@ -109,7 +116,6 @@ app runMonad env runDbAction manager =
             withAssetsProxy
             (authContext runMonad)
             $ server runMonad env runDbAction manager
-
 
 {- Allow CORS and allow certain headers in CORS requests -}
 serveWithCORS :: Middleware
@@ -132,7 +138,8 @@ withAssetsProxy :: Proxy WithAssets
 withAssetsProxy =
     Proxy
 
-server :: ()
+server
+    :: ()
     => (forall a. Stack a -> Handler a)
     -> EnvironmentVariables
     -> DBActionRunner Stack
