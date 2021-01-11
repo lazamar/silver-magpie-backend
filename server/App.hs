@@ -65,7 +65,7 @@ runApp :: EnvironmentVariables -> IO ()
 runApp env = do
     putStrLn $ "Running server on port " ++ show (port env)
 
-    S runMonad <- stackRunner env
+    let S runMonad = stackRunner env
     let runDbAction = undefined
 
     -- SERVER START
@@ -78,8 +78,9 @@ type Stack = MonadSQLT (ExceptT ServerError IO)
 
 newtype StackRunner m n = S (forall a. m a -> n a)
 
-stackRunner :: EnvironmentVariables -> IO (StackRunner Stack Handler)
-stackRunner = undefined
+-- TODO database name must be set by the environment variables
+stackRunner :: EnvironmentVariables -> StackRunner Stack Handler
+stackRunner _ = S $ Handler . runMonadSQL "./database/DB.sql"
 
 connectToMongo :: EnvironmentVariables -> IO Pipe
 connectToMongo env =
