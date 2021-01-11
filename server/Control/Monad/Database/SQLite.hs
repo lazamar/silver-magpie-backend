@@ -1,27 +1,27 @@
 {-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 
 module Control.Monad.Database.SQLite where
 
-import Control.Concurrent.MVar (MVar, newMVar, swapMVar, withMVar, takeMVar, putMVar)
+import Control.Concurrent.MVar (MVar, newMVar, putMVar, swapMVar, takeMVar, withMVar)
 import Control.Monad (void)
-import Control.Monad.Reader (MonadReader)
+import Control.Monad.Catch (MonadCatch, MonadMask, MonadThrow, finally, mask, onException)
 import Control.Monad.Except (MonadError)
-import Control.Monad.Catch (MonadThrow, MonadCatch, MonadMask, finally, mask, onException)
 import Control.Monad.IO.Class (MonadIO, liftIO)
-import Control.Monad.Reader (ReaderT (..), ask, local, reader, runReaderT)
+import Control.Monad.Reader (MonadReader, ReaderT (..), ask, local, reader, runReaderT)
 import Control.Monad.Trans.Class (MonadTrans, lift)
 import Data.List (intercalate)
+import Data.Maybe (listToMaybe)
 import Data.String (fromString)
 import Database.SQLite.Simple (FromRow, NamedParam, Query, SQLData, ToRow)
 import qualified Control.Monad.Database as DB
@@ -40,7 +40,7 @@ class Monad m => MonadSQL m where
     queryNamed :: FromRow r => Query -> [NamedParam] -> m [r]
     withTransaction :: m a -> m a
 
-runMonadSQL :: (MonadMask m, MonadIO m) => FilePath -> MonadSQLT m a -> m a
+runMonadSQL :: (MonadMask m , MonadIO m) => FilePath -> MonadSQLT m a -> m a
 runMonadSQL path (MonadSQLT m) = do
     conn <- liftIO $ SQL.open path
     writeLock <- liftIO $ newMVar True
@@ -55,9 +55,9 @@ data DBState = DBState
       writeLock :: MVar Bool
     }
 
-instance (Monad m, MonadReader DBState m, MonadMask m , MonadIO m, MonadSQL m) => MonadSQL m where
+instance (Monad m , MonadReader DBState m , MonadMask m , MonadIO m , MonadSQL m) => MonadSQL m where
     execute q v = write $ \conn -> liftIO $ SQL.execute conn q v
-    executeNamed q v =  write $ \conn -> liftIO $ SQL.executeNamed conn q v
+    executeNamed q v = write $ \conn -> liftIO $ SQL.executeNamed conn q v
     execute_ q = write $ \conn -> liftIO $ SQL.execute_ conn q
     query q v = reader conn >>= \conn -> liftIO $ SQL.query conn q v
     query_ q = reader conn >>= \conn -> liftIO $ SQL.query_ conn q
@@ -80,32 +80,36 @@ instance (Monad m, MonadReader DBState m, MonadMask m , MonadIO m, MonadSQL m) =
                     rollback = liftIO $ SQL.execute_ conn "ROLLBACK TRANSACTION"
 
 newtype MonadSQLT m a = MonadSQLT (ReaderT DBState m a)
-    deriving newtype (Functor , Applicative , Monad, MonadIO, MonadReader DBState)
+    deriving newtype (Functor , Applicative , Monad , MonadIO , MonadReader DBState)
 
 deriving newtype instance (MonadThrow m) => MonadThrow (MonadSQLT m)
+
 deriving newtype instance (MonadCatch m) => MonadCatch (MonadSQLT m)
+
 deriving newtype instance (MonadMask m) => MonadMask (MonadSQLT m)
+
 deriving newtype instance (MonadError e m) => MonadError e (MonadSQLT m)
 
 instance MonadTrans MonadSQLT where
     lift = MonadSQLT . lift
 
-write :: (MonadIO m, MonadMask m, MonadReader DBState m)
-      => (SQL.Connection -> m a)
-      -> m a
+write
+    :: (MonadIO m , MonadMask m , MonadReader DBState m)
+    => (SQL.Connection -> m a)
+    -> m a
 write action = do
     DBState conn writeLock <- ask
     withMVar' writeLock $ \case
         False -> error "Trying to write after transaction was closed"
         True -> action conn
 
-withMVar' :: (MonadMask m, MonadIO m) => MVar a -> (a -> m b) -> m b
+withMVar' :: (MonadMask m , MonadIO m) => MVar a -> (a -> m b) -> m b
 withMVar' m act =
-  mask $ \restore -> do
-    a <- liftIO $ takeMVar m
-    b <- restore (act a) `onException` liftIO (putMVar m a)
-    liftIO (putMVar m a)
-    return b
+    mask $ \restore -> do
+        a <- liftIO $ takeMVar m
+        b <- restore (act a) `onException` liftIO (putMVar m a)
+        liftIO (putMVar m a)
+        return b
 
 instance forall m. (MonadMask m , MonadIO m) => DB.MonadDB (MonadSQLT m) where
     type Record (MonadSQLT m) = [SQLData]
@@ -124,19 +128,18 @@ instance forall m. (MonadMask m , MonadIO m) => DB.MonadDB (MonadSQLT m) where
                 (fromString $ "INSERT OR REPLACE INTO " <> col <> "VALUES (" <> queryRep record <> ")")
                 record
 
-    retrieve (DB.Target _ (DB.Collection col)) = \case
-        DB.SelectOne fields -> do
-            let vars = zip varNames fields
-                q =
-                    fromString $
-                        unwords
-                            [ "SELECT * FROM " <> col
-                            , "WHERE " <> unwords (map asFieldQuery vars)
-                            , "LIMIT 1"
-                            ]
+    retrieveOne (DB.Target _ (DB.Collection col)) fields = do
+        let vars = zip varNames fields
+            q =
+                fromString $
+                    unwords
+                        [ "SELECT * FROM " <> col
+                        , "WHERE " <> unwords (map asFieldQuery vars)
+                        , "LIMIT 1"
+                        ]
 
-            records <- queryNamed q (map asNamedParam vars)
-            return $ fmap (DB.fromRecord @(MonadSQLT m)) records
+        records <- queryNamed q (map asNamedParam vars)
+        return $ DB.fromRecord @(MonadSQLT m) <$> listToMaybe records
 
     delete (DB.Target _ (DB.Collection col)) = \case
         DB.DeleteMany fields -> do

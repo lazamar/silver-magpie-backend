@@ -13,9 +13,9 @@ module Control.Monad.Database
       Collection (..),
       Database (..),
       FieldValue (..),
-      Selector (..),
       Delete (..),
       Insert (..),
+      (=:)
     )
 where
 
@@ -33,7 +33,7 @@ class MonadDB m where
     type Record m :: * -- ^ A way to represent data in a collection
     type Value m :: * -- ^ A way to represent attributes of data in a collection
     store :: ToRecord m a => Target -> Insert m a -> m ()
-    retrieve :: FromRecord m a => Target -> Selector m -> m [a]
+    retrieveOne :: FromRecord m a => Target -> [FieldValue m] -> m (Maybe a)
     delete :: Target -> Delete m -> m ()
 
 -- | Parse value from a database collection
@@ -61,8 +61,9 @@ newtype Collection = Collection String
 data FieldValue m where
     FieldValue :: IsValue m a => String -> a -> FieldValue m
 
-data Selector m
-    = SelectOne [FieldValue m]
+infix 0 =:
+(=:) :: IsValue m a => String -> a -> FieldValue m
+(=:) = FieldValue
 
 data Insert m a
     = Insert a

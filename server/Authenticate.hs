@@ -9,6 +9,7 @@
 module Authenticate (authenticate, authContext, Authenticate, AuthContext) where
 
 
+import qualified Control.Monad.Database as DB
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.Bson (Document, (=:))
 import qualified Data.ByteString.Char8 as B
