@@ -15,15 +15,6 @@ import Control.Monad.Conc.Class (MonadConc)
 import Control.Monad.Database.SQLite
 import Control.Monad.Except (ExceptT (..))
 import Data.Bool (bool)
-import Database.MongoDB
-    ( Host (Host),
-      Pipe,
-      PortID (PortNumber),
-      access,
-      auth,
-      connect,
-      master,
-    )
 import Network.HTTP.Client (Manager)
 import Network.HTTP.Client.TLS (newTlsManager)
 import Network.Wai (Middleware)
@@ -49,12 +40,10 @@ import Servant
     )
 import Servant.Server.StaticFiles (serveDirectoryFileServer)
 import Types
-    ( DBActionRunner,
-      EnvironmentVariables (dbName , dbPassword , dbPort , dbUrl , dbUsername , port),
+    ( EnvironmentVariables (dbName , dbPassword , dbPort , dbUrl , dbUsername , port),
       HandlerM,
     )
 import qualified Data.Text as T
-import qualified Database.MongoDB.Query as Query
 import qualified MongoTypes.AppAuth as AppAuth
 import qualified MongoTypes.UserDetails as UserDetails
 
@@ -67,11 +56,10 @@ runApp env = do
     putStrLn $ "Running server on port " ++ show (port env)
 
     let S runMonad = stackRunner env
-    let runDbAction = undefined
 
     -- SERVER START
     manager <- newTlsManager
-    let serverApp = app runMonad env runDbAction manager
+    let serverApp = app runMonad env manager
         portName = port env
     run portName serverApp
 
@@ -88,11 +76,11 @@ stackRunner _ = S $ Handler . runMonadSQL "./database/DB.sql"
             , AppAuth.collectionName
             ]
 
-connectToMongo :: EnvironmentVariables -> IO Pipe
-connectToMongo env =
-    connect $
-        Host (T.unpack $ dbUrl env) $
-            PortNumber (read $ show $ dbPort env)
+--connectToMongo :: EnvironmentVariables -> IO Pipe
+--connectToMongo env =
+--connect $
+--Host (T.unpack $ dbUrl env) $
+--PortNumber (read $ show $ dbPort env)
 
 -- After we generate a Pipe, we need to authenticate that pipe for it to work
 -- authenticateConnection :: HandlerM m => EnvironmentVariables -> DBActionRunner m -> m Bool
@@ -107,15 +95,14 @@ app
     :: ()
     => (forall a. Stack a -> Handler a)
     -> EnvironmentVariables
-    -> DBActionRunner Stack
     -> Manager
     -> Application
-app runMonad env runDbAction manager =
+app runMonad env manager =
     serveWithCORS $
         serveWithContext
             withAssetsProxy
             (authContext runMonad)
-            $ server runMonad env runDbAction manager
+            $ server runMonad env manager
 
 {- Allow CORS and allow certain headers in CORS requests -}
 serveWithCORS :: Middleware
@@ -142,10 +129,9 @@ server
     :: ()
     => (forall a. Stack a -> Handler a)
     -> EnvironmentVariables
-    -> DBActionRunner Stack
     -> Manager
     -> Server WithAssets
-server runMonad env runDbAction manager =
+server runMonad env manager =
     hoistServerWithContext
         (Proxy :: Proxy WithAssets)
         (Proxy :: Proxy AuthContext)
@@ -153,7 +139,7 @@ server runMonad env runDbAction manager =
         theServer
     where
         theServer :: ServerT WithAssets Stack
-        theServer = apiServer env runDbAction manager :<|> serveAssets
+        theServer = apiServer env manager :<|> serveAssets
 
 serveAssets :: ServerT Raw m
 serveAssets =

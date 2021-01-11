@@ -31,8 +31,7 @@ import Servant
     )
 import Twitter (Timeline)
 import Types
-    ( DBActionRunner,
-      EnvironmentVariables,
+    ( EnvironmentVariables,
       HandlerM,
       InfoMsg,
       domain,
@@ -116,13 +115,13 @@ type M m =
     , DB.ToRecord m UserDetails
     )
 
-apiServer :: M m => EnvironmentVariables -> DBActionRunner m -> Manager -> ServerT Api m
-apiServer env runDbAction manager =
+apiServer :: M m => EnvironmentVariables -> Manager -> ServerT Api m
+apiServer env manager =
     let oauth = twitterOAuth env
      in Routes.SignIn.get oauth manager
             :<|> Routes.SaveCredentials.get oauth manager
             :<|> Routes.AppGetAccess.get oauth manager
-            :<|> Routes.AppRevokeAccess.delete runDbAction
+            :<|> Routes.AppRevokeAccess.delete
             :<|> Routes.Home.get oauth manager
             :<|> Routes.Mentions.get oauth manager
             :<|> Routes.UserSearch.get oauth manager

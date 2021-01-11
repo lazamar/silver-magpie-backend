@@ -7,7 +7,6 @@ module Routes.SaveCredentials (get) where
 import Control.Monad.Except (MonadError)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.Either.Combinators (mapLeft)
-import Database.MongoDB.Query (Action)
 import MongoTypes.UserDetails
     ( UserDetails (UserDetails),
       accessRequestToken,
@@ -30,13 +29,12 @@ import Servant
       errHeaders,
       throwError,
     )
-import Types (DBActionRunner, HandlerM, InfoMsg, targetCollection)
+import Types (HandlerM, InfoMsg, targetCollection)
 import Web.Authenticate.OAuth (unCredential)
 import qualified Control.Monad.Database as DB
 import qualified Data.Bson as Bson
 import qualified Data.ByteString.Char8 as ByteString
 import qualified Data.ByteString.Lazy.Char8 as LByteString
-import qualified Database.MongoDB.Query as Mongo
 import qualified MongoTypes.UserDetails as UserDetails
 import qualified Web.Authenticate.OAuth as OAuth
 

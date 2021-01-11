@@ -8,12 +8,11 @@ module Routes.SignIn (get) where
 import Control.Monad.Except (MonadError)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.Bson ((=:))
-import Database.MongoDB.Query (Action, Selection (Select), upsert)
 import MongoTypes.AppAuth (AppAuth (AppAuth , accessRequestToken , appSessionId))
 import Network.HTTP.Client (Manager)
 import Network.HTTP.Types.Header (hLocation)
 import Servant (Handler, ServerError, err301, err400, err500, errBody, errHeaders, throwError)
-import Types (DBActionRunner, HandlerM, targetCollection)
+import Types (HandlerM, targetCollection)
 import Web.Authenticate.OAuth as OAuth
 import qualified Control.Monad.Database as DB
 import qualified Data.ByteString.Char8 as ByteString

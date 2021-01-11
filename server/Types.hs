@@ -13,7 +13,6 @@ import Control.Monad.Except (ExceptT (..))
 import Control.Monad.IO.Class (MonadIO)
 import Data.Aeson.Types (FromJSON, ToJSON)
 import Data.Text (Text)
-import Database.MongoDB (Action)
 import GHC.Generics (Generic)
 import Servant.Server (ServerError)
 
@@ -47,13 +46,12 @@ newtype InfoMsg = InfoMsg {status :: String}
 
 instance ToJSON InfoMsg
 
-type DBActionRunner m = (forall a. Action m a -> m a)
-
 type HandlerM m =
     ( MonadDB m
     , MonadIO m
     , MonadError ServerError m
     , ToValue m String
+    , ToValue m Text
     )
 
 type Stack = MonadSQLT (ExceptT ServerError IO)
