@@ -1,21 +1,21 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes        #-}
+{-# LANGUAGE FlexibleContexts   #-}
 
 module Routes.SignIn (get) where
 
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.Bson ((=:))
-import qualified Data.ByteString.Char8 as ByteString
 import Database.MongoDB.Query (Action, Selection (Select), upsert)
 import MongoTypes.AppAuth (AppAuth (AppAuth, accessRequestToken, appSessionId))
 import Network.HTTP.Client (Manager)
 import Network.HTTP.Types.Header (hLocation)
-import Servant
-    (Handler, err301, err400, err500, errBody, errHeaders, throwError)
-import Types (DBActionRunner)
+import Servant (Handler, err301, err400, err500, errBody, errHeaders, throwError)
+import Types (HandlerM, DBActionRunner)
 import Web.Authenticate.OAuth as OAuth
+import qualified Data.ByteString.Char8 as ByteString
 
-get ::  OAuth.OAuth -> DBActionRunner -> Manager -> Maybe String -> Handler AppAuth
+get :: HandlerM m => OAuth.OAuth -> DBActionRunner m -> Manager -> Maybe String -> m AppAuth
 get oauth runDbAction manager mAppSessionId =
     let
         authorise Nothing _ =
@@ -31,8 +31,7 @@ get oauth runDbAction manager mAppSessionId =
                 auth = AppAuth sessionId token
                 action = saveAppAuthorisation auth
             in
-                liftIO (runDbAction action)
-                >> authoriseWithToken token
+                runDbAction action >> authoriseWithToken token
     in
         do
             credentials <- liftIO $ OAuth.getTemporaryCredential oauth manager
@@ -65,7 +64,7 @@ saveAppAuthorisation auth =
     in
         upsert selection document
 
-authoriseWithToken :: String -> Handler a
+authoriseWithToken :: HandlerM m => String -> m a
 authoriseWithToken token =
     let
         url = "https://api.twitter.com/oauth/authorize?oauth_token=" ++ token

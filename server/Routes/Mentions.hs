@@ -1,5 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes        #-}
+{-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Routes.Mentions (get) where
 
@@ -10,18 +12,20 @@ import Network.HTTP.Client (Manager)
 import Servant (Handler, err500, errBody, throwError)
 import Twitter (Timeline, WhichTimeline (MentionsTimeline), fetchTimeline)
 import qualified Web.Authenticate.OAuth as OAuth
+import Types (HandlerM)
 
 
-get :: OAuth.OAuth
+get :: forall m. HandlerM m
+    => OAuth.OAuth
     -> Manager
     -> UserDetails
     -> Maybe String
     -> Maybe String
-    -> Handler Timeline
+    -> m Timeline
 get oauth manager userDetails mMaxId mSinceId =
     liftIO fetchMentions >>= either err return
         where
-            err :: String -> Handler a
+            err :: String -> m a
             err msg =
                 throwError $ err500 { errBody = LB.pack msg }
 

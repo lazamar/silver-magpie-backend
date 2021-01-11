@@ -5,13 +5,19 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 module Control.Monad.Database.SQLite where
 
-import Control.Concurrent.Classy.MVar (MVar, newMVar, swapMVar, withMVar)
+import Control.Concurrent.MVar (MVar, newMVar, swapMVar, withMVar, takeMVar, putMVar)
 import Control.Monad (void)
-import Control.Monad.Catch (MonadMask, finally, mask, onException)
-import Control.Monad.Conc.Class (MonadConc)
+import Control.Monad.Reader (MonadReader)
+import Control.Monad.Except (MonadError)
+import Control.Monad.Catch (MonadThrow, MonadCatch, MonadMask, finally, mask, onException)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Reader (ReaderT (..), ask, local, reader, runReaderT)
 import Control.Monad.Trans.Class (MonadTrans, lift)
@@ -34,32 +40,32 @@ class Monad m => MonadSQL m where
     queryNamed :: FromRow r => Query -> [NamedParam] -> m [r]
     withTransaction :: m a -> m a
 
-runMonadSQL :: (MonadConc m , MonadIO m) => FilePath -> MonadSQLT m a -> m a
+runMonadSQL :: (MonadMask m, MonadIO m) => FilePath -> MonadSQLT m a -> m a
 runMonadSQL path (MonadSQLT m) = do
     conn <- liftIO $ SQL.open path
-    writeLock <- newMVar True
+    writeLock <- liftIO $ newMVar True
     let state = DBState conn writeLock
     finally
         (runReaderT m state)
         (liftIO $ SQL.close conn)
 
-data DBState m = DBState
+data DBState = DBState
     { conn :: SQL.Connection
     , -- | Is transaction still active
-      writeLock :: MVar m Bool
+      writeLock :: MVar Bool
     }
 
-instance (MonadConc m , MonadMask m , MonadIO m) => MonadSQL (MonadSQLT m) where
-    execute q v = MonadSQLT $ write $ \conn -> liftIO $ SQL.execute conn q v
-    executeNamed q v = MonadSQLT $ write $ \conn -> liftIO $ SQL.executeNamed conn q v
-    execute_ q = MonadSQLT $ write $ \conn -> liftIO $ SQL.execute_ conn q
-    query q v = MonadSQLT $ reader conn >>= \conn -> liftIO $ SQL.query conn q v
-    query_ q = MonadSQLT $ reader conn >>= \conn -> liftIO $ SQL.query_ conn q
-    queryNamed q v = MonadSQLT $ reader conn >>= \conn -> liftIO $ SQL.queryNamed conn q v
-    withTransaction (MonadSQLT action) = MonadSQLT $
+instance (Monad m, MonadReader DBState m, MonadMask m , MonadIO m, MonadSQL m) => MonadSQL m where
+    execute q v = write $ \conn -> liftIO $ SQL.execute conn q v
+    executeNamed q v =  write $ \conn -> liftIO $ SQL.executeNamed conn q v
+    execute_ q = write $ \conn -> liftIO $ SQL.execute_ conn q
+    query q v = reader conn >>= \conn -> liftIO $ SQL.query conn q v
+    query_ q = reader conn >>= \conn -> liftIO $ SQL.query_ conn q
+    queryNamed q v = reader conn >>= \conn -> liftIO $ SQL.queryNamed conn q v
+    withTransaction action =
         write $ \conn -> do
-            transactionWriteLock <- newMVar True
-            let closeTransaction = swapMVar transactionWriteLock False
+            transactionWriteLock <- liftIO $ newMVar True
+            let closeTransaction = liftIO $ swapMVar transactionWriteLock False
             local (\s -> s {writeLock = transactionWriteLock}) $ runTransaction conn closeTransaction
         where
             runTransaction conn closeTransaction = do
@@ -73,20 +79,35 @@ instance (MonadConc m , MonadMask m , MonadIO m) => MonadSQL (MonadSQLT m) where
                     commit = liftIO $ SQL.execute_ conn "COMMIT TRANSACTION"
                     rollback = liftIO $ SQL.execute_ conn "ROLLBACK TRANSACTION"
 
-newtype MonadSQLT m a = MonadSQLT (ReaderT (DBState m) m a)
-    deriving newtype (Functor , Applicative , Monad)
+newtype MonadSQLT m a = MonadSQLT (ReaderT DBState m a)
+    deriving newtype (Functor , Applicative , Monad, MonadIO, MonadReader DBState)
+
+deriving newtype instance (MonadThrow m) => MonadThrow (MonadSQLT m)
+deriving newtype instance (MonadCatch m) => MonadCatch (MonadSQLT m)
+deriving newtype instance (MonadMask m) => MonadMask (MonadSQLT m)
+deriving newtype instance (MonadError e m) => MonadError e (MonadSQLT m)
 
 instance MonadTrans MonadSQLT where
     lift = MonadSQLT . lift
 
-write :: MonadConc m => (SQL.Connection -> ReaderT (DBState m) m a) -> ReaderT (DBState m) m a
+write :: (MonadIO m, MonadMask m, MonadReader DBState m)
+      => (SQL.Connection -> m a)
+      -> m a
 write action = do
     DBState conn writeLock <- ask
-    withMVar writeLock $ \case
+    withMVar' writeLock $ \case
         False -> error "Trying to write after transaction was closed"
         True -> action conn
 
-instance forall m. (MonadConc m , MonadMask m , MonadIO m) => DB.MonadDB (MonadSQLT m) where
+withMVar' :: (MonadMask m, MonadIO m) => MVar a -> (a -> m b) -> m b
+withMVar' m act =
+  mask $ \restore -> do
+    a <- liftIO $ takeMVar m
+    b <- restore (act a) `onException` liftIO (putMVar m a)
+    liftIO (putMVar m a)
+    return b
+
+instance forall m. (MonadMask m , MonadIO m) => DB.MonadDB (MonadSQLT m) where
     type Record (MonadSQLT m) = [SQLData]
     type Value (MonadSQLT m) = SQLData
 

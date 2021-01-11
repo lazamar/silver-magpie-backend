@@ -1,9 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes        #-}
+{-# LANGUAGE FlexibleContexts  #-}
 
 module Routes.SaveCredentials (get) where
 
-import           Control.Monad.IO.Class     (liftIO)
+import           Control.Monad.IO.Class     (MonadIO, liftIO)
 import qualified Data.Bson                  as Bson
 import qualified Data.ByteString.Char8      as ByteString
 import qualified Data.ByteString.Lazy.Char8 as LByteString
@@ -19,7 +20,7 @@ import           Network.HTTP.Types.Header  (hLocation)
 import           SafeHttp                   (safeRequest)
 import           Servant                    (Handler, err301, err400, err500,
                                              errBody, errHeaders, throwError)
-import           Types                      (DBActionRunner, InfoMsg)
+import           Types                      (DBActionRunner, InfoMsg, HandlerM)
 import           Web.Authenticate.OAuth     (unCredential)
 import qualified Web.Authenticate.OAuth     as OAuth
 {-
@@ -27,7 +28,7 @@ import qualified Web.Authenticate.OAuth     as OAuth
     Here we save his authorisation data.
 -}
 
-get :: OAuth.OAuth -> DBActionRunner -> Manager -> Maybe String -> Maybe String -> Handler InfoMsg
+get :: HandlerM m => OAuth.OAuth -> DBActionRunner m -> Manager -> Maybe String -> Maybe String -> m InfoMsg
 get _ _ _ Nothing _ = throwError err400
 get _ _ _ _ Nothing = throwError err400
 get oauth runDBAction manager (Just requestToken) (Just requestVerifier) =
@@ -43,7 +44,7 @@ get oauth runDBAction manager (Just requestToken) (Just requestVerifier) =
 
         handleDetails (Right userDetails) =
             do
-                _ <- liftIO (runDBAction $ saveUserDetails userDetails)
+                _ <- runDBAction $ saveUserDetails userDetails
                 redirectTo "./thank-you.html"
 
 
@@ -93,7 +94,7 @@ removeQuotes v =
     drop 1 $ take (length v - 1) v
 
 
-saveUserDetails :: UserDetails -> Action IO Bson.Value
+saveUserDetails :: MonadIO m => UserDetails -> Action m Bson.Value
 saveUserDetails userDetails =
     let
         collection = "credentials"
@@ -102,7 +103,7 @@ saveUserDetails userDetails =
         Mongo.insert collection document
 
 
-redirectTo :: String -> Handler a
+redirectTo :: HandlerM m => String -> m a
 redirectTo url =
     let
         locationHeader = (hLocation, ByteString.pack url)

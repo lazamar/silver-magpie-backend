@@ -1,14 +1,19 @@
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes        #-}
+{-# LANGUAGE ConstraintKinds   #-}
+{-# LANGUAGE FlexibleContexts  #-}
 
 module Types where
 
-
+import Control.Monad.Database (MonadDB)
+import Control.Monad.IO.Class (MonadIO)
+import Control.Monad.Error.Class (MonadError)
 import Data.Aeson.Types (FromJSON, ToJSON)
 import Data.Text (Text)
 import Database.MongoDB (Action)
 import GHC.Generics (Generic)
+import Servant.Server (ServerError)
 
 data Environment
     = Development
@@ -41,4 +46,6 @@ newtype InfoMsg = InfoMsg { status :: String }
 
 instance ToJSON InfoMsg
 
-type DBActionRunner = (forall a. Action IO a -> IO a)
+type DBActionRunner m = (forall a. Action m a -> m a)
+
+type HandlerM m = (MonadDB m, MonadIO m, MonadError ServerError m)

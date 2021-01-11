@@ -1,10 +1,12 @@
-{-# LANGUAGE DataKinds         #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes        #-}
-{-# LANGUAGE TypeFamilies      #-}
-{-# LANGUAGE TypeOperators     #-}
+{-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE RankNTypes          #-}
+{-# LANGUAGE TypeFamilies        #-}
+{-# LANGUAGE TypeOperators       #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleContexts    #-}
 
-module Authenticate (authenticate, authContext, Authenticate) where
+module Authenticate (authenticate, authContext, Authenticate, AuthContext) where
 
 
 import Control.Monad.IO.Class (MonadIO, liftIO)
@@ -23,7 +25,7 @@ import Servant
 import Servant.API.Experimental.Auth (AuthProtect)
 import Servant.Server.Experimental.Auth
     (AuthHandler, AuthServerData, mkAuthHandler)
-import Types (DBActionRunner)
+import Types (HandlerM, DBActionRunner)
 
 
 -- Name of my authentication scheme. I could have multiple different ones
@@ -32,30 +34,31 @@ type Authenticate = AuthProtect "x-auth"
 -- Specify what my authentication scheme will return
 type instance AuthServerData (Authenticate) = UserDetails
 
+type AuthContext = '[AuthHandler Request UserDetails]
 
-authContext :: DBActionRunner -> Context (AuthHandler Request UserDetails ': '[])
-authContext runDb =
-    mkAuthHandler (handleReq runDb) :. EmptyContext
+authContext ::  HandlerM m => (forall a. m a -> Handler a) -> Context AuthContext
+authContext runWrapper =
+    mkAuthHandler (runWrapper . handleReq) :. EmptyContext
 
 
 -- Logic to authenticate a request
-handleReq :: DBActionRunner -> Request -> Handler UserDetails
-handleReq runDb req =
+handleReq :: forall m. HandlerM m => Request -> m UserDetails
+handleReq req =
     case lookup "x-app-token" (requestHeaders req) of
         Nothing ->
           unauthorised "Missing x-app-token auth header"
 
-        Just authKey ->
-            do
-                mUser <- liftIO $ runDb $ authenticate $ B.unpack authKey
-                case mUser of
-                    Nothing ->
-                        unauthorised "Invalid authorisation token"
+        Just authKey -> undefined -- TODO
+            --do
+                --mUser <- runDb $ authenticate $ B.unpack authKey
+                --case mUser of
+                    --Nothing ->
+                        --unauthorised "Invalid authorisation token"
 
-                    Just user ->
-                        return user
+                    --Just user ->
+                        --return user
     where
-        unauthorised :: LB.ByteString -> Handler a
+        unauthorised :: LB.ByteString -> m a
         unauthorised msg =
             throwError (err401 { errBody = msg })
 

@@ -1,6 +1,8 @@
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes        #-}
+{-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Routes.AppGetAccess (get, ReturnType) where
 import Control.Monad.IO.Class (liftIO)
@@ -11,9 +13,10 @@ import GHC.Generics (Generic)
 import MongoTypes.UserDetails (UserDetails)
 import qualified MongoTypes.UserDetails as UserDetails
 import Network.HTTP.Client (Manager, responseBody)
-import Servant (Handler, err401, err500, errBody, throwError)
+import Servant (err401, err500, errBody, throwError)
 import qualified Twitter
 import qualified Web.Authenticate.OAuth as OAuth
+import Types (HandlerM)
 
 data ReturnType =
      ReturnType
@@ -26,7 +29,7 @@ data ReturnType =
 instance ToJSON ReturnType
 
 
-get :: OAuth.OAuth -> Manager -> UserDetails -> Maybe String -> Handler ReturnType
+get :: HandlerM m => OAuth.OAuth -> Manager -> UserDetails -> Maybe String -> m ReturnType
 get _ _ _ Nothing  = throwError err401
 get oauth manager userDetails (Just sessionId) =
     do

@@ -2,11 +2,17 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module App (runApp) where
 
+import Control.Monad.Except (ExceptT(..))
+import Control.Monad.Conc.Class (MonadConc)
 import Api (Api, apiServer)
-import Authenticate (authContext)
+import Authenticate (authContext, AuthContext)
 import Control.Monad.Database.SQLite
 import Data.Bool (bool)
 import Database.MongoDB
@@ -29,17 +35,23 @@ import Network.Wai.Middleware.Cors
       simpleCorsResourcePolicy,
     )
 import Servant
-    ( Application,
-      Proxy (Proxy),
-      Raw,
-      Server,
-      serveWithContext,
-      (:<|>) ((:<|>)),
+    ( Application
+    , Proxy (Proxy)
+    , Raw
+    , Server
+    , Handler(..)
+    , ServerT(..)
+    , ServerError(..)
+    , serveWithContext
+    , hoistServerWithContext
+    , hoistServer
+    , (:<|>) ((:<|>))
     )
 import Servant.Server.StaticFiles (serveDirectoryFileServer)
 import Types
-    ( DBActionRunner,
-      EnvironmentVariables (dbName , dbPassword , dbPort , dbUrl , dbUsername , port),
+    ( HandlerM
+    , DBActionRunner
+    , EnvironmentVariables (dbName , dbPassword , dbPort , dbUrl , dbUsername , port),
     )
 import qualified Data.Text as T
 import qualified Database.MongoDB.Query as Query
@@ -48,21 +60,26 @@ import qualified Database.MongoDB.Query as Query
 --                               App
 -------------------------------------------------------------------------------
 
+
 runApp :: EnvironmentVariables -> IO ()
 runApp env = do
     putStrLn $ "Running server on port " ++ show (port env)
 
-    -- DATABASE SETUP
-    pipe <- connectToMongo env
-    let runDbAction = createActionRunner pipe (dbName env)
-    authenticated <- authenticateConnection env runDbAction
-    putStrLn $ "Database authentication " ++ bool "failed" "succeeded" authenticated
+    S runMonad <- stackRunner env
+    let runDbAction = undefined
 
     -- SERVER START
     manager <- newTlsManager
-    let serverApp = app env runDbAction manager
+    let serverApp = app runMonad env runDbAction manager
         portName = port env
     run portName serverApp
+
+type Stack = MonadSQLT (ExceptT ServerError IO)
+
+newtype StackRunner m n = S (forall a. m a -> n a)
+
+stackRunner :: EnvironmentVariables -> IO (StackRunner Stack Handler)
+stackRunner = undefined
 
 connectToMongo :: EnvironmentVariables -> IO Pipe
 connectToMongo env =
@@ -71,21 +88,27 @@ connectToMongo env =
             PortNumber (read $ show $ dbPort env)
 
 -- After we generate a Pipe, we need to authenticate that pipe for it to work
-authenticateConnection :: EnvironmentVariables -> DBActionRunner -> IO Bool
-authenticateConnection env runDbAction =
-    runDbAction $ auth (dbUsername env) (dbPassword env)
+-- authenticateConnection :: HandlerM m => EnvironmentVariables -> DBActionRunner m -> m Bool
+-- authenticateConnection env runDbAction =
+--     runDbAction $ auth (dbUsername env) (dbPassword env)
 
-createActionRunner :: Pipe -> Query.Database -> DBActionRunner
-createActionRunner pipe database =
-    access pipe master database
+-- createActionRunner :: Pipe -> Query.Database -> DBActionRunner m
+-- createActionRunner pipe database =
+--     access pipe master database
 
-app :: EnvironmentVariables -> DBActionRunner -> Manager -> Application
-app env runDbAction manager =
+app :: ()
+    => (forall a. Stack a -> Handler a)
+    -> EnvironmentVariables
+    -> DBActionRunner Stack
+    -> Manager
+    -> Application
+app runMonad env runDbAction manager =
     serveWithCORS $
         serveWithContext
             withAssetsProxy
-            (authContext runDbAction)
-            $ server env runDbAction manager
+            (authContext runMonad)
+            $ server runMonad env runDbAction manager
+
 
 {- Allow CORS and allow certain headers in CORS requests -}
 serveWithCORS :: Middleware
@@ -108,10 +131,22 @@ withAssetsProxy :: Proxy WithAssets
 withAssetsProxy =
     Proxy
 
-server :: EnvironmentVariables -> DBActionRunner -> Manager -> Server WithAssets
-server env runDbAction manager =
-    apiServer env runDbAction manager :<|> serveAssets
+server :: ()
+    => (forall a. Stack a -> Handler a)
+    -> EnvironmentVariables
+    -> DBActionRunner Stack
+    -> Manager
+    -> Server WithAssets
+server runMonad env runDbAction manager =
+    hoistServerWithContext
+        (Proxy :: Proxy WithAssets)
+        (Proxy :: Proxy AuthContext)
+        runMonad
+        theServer
+    where
+        theServer :: ServerT WithAssets Stack
+        theServer = apiServer env runDbAction manager :<|> serveAssets
 
-serveAssets :: Server Raw
+serveAssets :: ServerT Raw m
 serveAssets =
     serveDirectoryFileServer "./static/build"

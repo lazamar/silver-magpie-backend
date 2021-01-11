@@ -3,9 +3,11 @@
 {-# LANGUAGE RankNTypes        #-}
 {-# LANGUAGE TypeFamilies      #-}
 {-# LANGUAGE TypeOperators     #-}
+{-# LANGUAGE FlexibleContexts  #-}
 
 module Api (Api, apiServer) where
 
+import Control.Monad.Database (MonadDB)
 import Authenticate (Authenticate)
 import Data.Aeson (Value)
 import Data.Text as T
@@ -33,11 +35,13 @@ import Servant
     , QueryParam
     , ReqBody
     , Server
+    , ServerT
     )
 import Twitter (Timeline)
 import Types
     ( DBActionRunner
     , EnvironmentVariables
+    , HandlerM
     , InfoMsg
     , domain
     , twitterKey
@@ -103,7 +107,7 @@ type Api =
 --                               Handlers
 -------------------------------------------------------------------------------
 
-apiServer :: EnvironmentVariables -> DBActionRunner ->  Manager -> Server Api
+apiServer :: HandlerM m => EnvironmentVariables -> DBActionRunner m ->  Manager -> ServerT Api m
 apiServer env runDbAction manager =
     let
         oauth = twitterOAuth env

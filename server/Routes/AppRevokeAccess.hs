@@ -1,4 +1,5 @@
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE RankNTypes       #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Routes.AppRevokeAccess (delete) where
 
@@ -11,16 +12,12 @@ import qualified MongoTypes.AppAuth as AppAuth
 import MongoTypes.UserDetails (UserDetails)
 import qualified MongoTypes.UserDetails as UserDetails
 import Servant (Handler)
-import Types (DBActionRunner, InfoMsg (InfoMsg))
+import Types (HandlerM, DBActionRunner, InfoMsg (InfoMsg))
 
-delete :: DBActionRunner -> UserDetails -> Handler InfoMsg
-delete runDbAction userDetails =
-    do
-        liftIO $
-            runDbAction $
-            deleteByRequestToken $
-            UserDetails.accessRequestToken userDetails
-        return $ InfoMsg "Authorisation revoked."
+delete :: HandlerM m => DBActionRunner m -> UserDetails -> m InfoMsg
+delete runDbAction userDetails = do
+    runDbAction $ deleteByRequestToken $ UserDetails.accessRequestToken userDetails
+    return $ InfoMsg "Authorisation revoked."
 
 
 {- Delete records in both collections -}

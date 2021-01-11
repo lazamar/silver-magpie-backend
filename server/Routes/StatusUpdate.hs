@@ -1,6 +1,8 @@
-{-# LANGUAGE DeriveGeneric     #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes        #-}
+{-# LANGUAGE DeriveGeneric       #-}
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE RankNTypes          #-}
+{-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Routes.StatusUpdate (post, StatusBody(StatusBody)) where
 
@@ -14,6 +16,7 @@ import Network.HTTP.Client (Manager)
 import Servant (Handler, err500, errBody, throwError)
 import Twitter (postStatusUpdate)
 import qualified Web.Authenticate.OAuth as OAuth
+import Types (HandlerM)
 
 data StatusBody =
     StatusBody
@@ -26,11 +29,11 @@ instance FromJSON StatusBody
 instance ToJSON StatusBody
 
 
-post :: OAuth.OAuth -> Manager -> UserDetails -> StatusBody -> Handler Value
+post :: forall m. HandlerM m => OAuth.OAuth -> Manager -> UserDetails -> StatusBody -> m Value
 post oauth manager userDetails statusBody =
     liftIO postUpdate >>= either err return
         where
-            err :: String -> Handler a
+            err :: String -> m a
             err msg =
                 throwError $ err500 { errBody = LB.pack msg }
 
