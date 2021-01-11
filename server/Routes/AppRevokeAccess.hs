@@ -1,37 +1,28 @@
-{-# LANGUAGE RankNTypes       #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE RankNTypes #-}
 
 module Routes.AppRevokeAccess (delete) where
 
 import Control.Monad.IO.Class (MonadIO, liftIO)
-import Data.Bson ((=:))
 import Data.Text as T
-import Database.MongoDB.Query (Action, Selection (Select))
-import qualified Database.MongoDB.Query as Mongo
-import qualified MongoTypes.AppAuth as AppAuth
 import MongoTypes.UserDetails (UserDetails)
-import qualified MongoTypes.UserDetails as UserDetails
 import Servant (Handler)
-import Types (HandlerM, DBActionRunner, InfoMsg (InfoMsg))
+import Types (HandlerM, InfoMsg (InfoMsg), targetCollection)
+import qualified Control.Monad.Database as DB
+import qualified MongoTypes.AppAuth as AppAuth
+import qualified MongoTypes.UserDetails as UserDetails
 
-delete :: HandlerM m => DBActionRunner m -> UserDetails -> m InfoMsg
-delete runDbAction userDetails = do
-    runDbAction $ deleteByRequestToken $ UserDetails.accessRequestToken userDetails
+delete :: HandlerM m => UserDetails -> m InfoMsg
+delete userDetails = do
+    deleteByRequestToken $ UserDetails.accessRequestToken userDetails
     return $ InfoMsg "Authorisation revoked."
 
-
 {- Delete records in both collections -}
-deleteByRequestToken :: MonadIO m => String -> Action m ()
+deleteByRequestToken :: HandlerM m => String -> m ()
 deleteByRequestToken token =
-    let
-        userDetailsSelector =
-            Select
-                [ UserDetails.keyAccessRequestToken =: T.pack token ]
-                UserDetails.collectionName
+    let userDetailsSelector =
+            DB.DeleteMany [UserDetails.keyAccessRequestToken DB.=: T.pack token]
         appAuthSelection =
-            Select
-                [ AppAuth.keyAccessRequestToken =: T.pack  token ]
-                AppAuth.collectionName
-    in
-        Mongo.delete userDetailsSelector >>
-        Mongo.delete appAuthSelection
+            DB.DeleteMany [AppAuth.keyAccessRequestToken DB.=: T.pack token]
+     in DB.delete (targetCollection UserDetails.collectionName) userDetailsSelector
+            >> DB.delete (targetCollection UserDetails.collectionName) appAuthSelection
