@@ -1,3 +1,4 @@
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
@@ -12,12 +13,19 @@ import MongoTypes.AppAuth (AppAuth (AppAuth , accessRequestToken , appSessionId)
 import Network.HTTP.Client (Manager)
 import Network.HTTP.Types.Header (hLocation)
 import Servant (Handler, ServerError, err301, err400, err500, errBody, errHeaders, throwError)
-import Types (DBActionRunner, HandlerM)
+import Types (DBActionRunner, HandlerM, targetCollection)
 import Web.Authenticate.OAuth as OAuth
+import qualified Control.Monad.Database as DB
 import qualified Data.ByteString.Char8 as ByteString
+import qualified MongoTypes.AppAuth as AppAuth
 
-get :: HandlerM m => OAuth.OAuth -> DBActionRunner m -> Manager -> Maybe String -> m AppAuth
-get oauth runDbAction manager mAppSessionId =
+type M m =
+    ( HandlerM m
+    , DB.ToRecord m AppAuth
+    )
+
+get :: M m => OAuth.OAuth -> Manager -> Maybe String -> m AppAuth
+get oauth manager mAppSessionId =
     let authorise Nothing _ =
             throwError $
                 err400
@@ -30,8 +38,7 @@ get oauth runDbAction manager mAppSessionId =
                     }
         authorise (Just sessionId) (Just token) =
             let auth = AppAuth sessionId token
-                action = saveAppAuthorisation auth
-             in runDbAction action >> authoriseWithToken token
+             in saveAppAuthorisation auth >> authoriseWithToken token
      in do
             credentials <- liftIO $ OAuth.getTemporaryCredential oauth manager
             authorise mAppSessionId $ oauthToken credentials
@@ -47,16 +54,14 @@ removeQuotes :: [a] -> [a]
 removeQuotes v =
     drop 1 $ take (length v - 1) v
 
-saveAppAuthorisation :: MonadIO m => AppAuth -> Action m ()
+saveAppAuthorisation :: M m => AppAuth -> m ()
 saveAppAuthorisation auth =
-    let document =
-            [ "app_session_id" =: appSessionId auth
-            , "access_request_token" =: accessRequestToken auth
-            ]
-        selector = ["app_session_id" =: appSessionId auth]
+    let document = AppAuth (appSessionId auth) (accessRequestToken auth)
+        selector = ["app_session_id" DB.=: appSessionId auth]
         collection = "app-authorisation"
-        selection = Select selector collection
-     in upsert selection document
+     in DB.store
+            (targetCollection AppAuth.collectionName)
+            (DB.Update selector document)
 
 authoriseWithToken :: MonadError ServerError m => String -> m a
 authoriseWithToken token =

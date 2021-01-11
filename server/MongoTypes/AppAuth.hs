@@ -18,6 +18,7 @@ import Data.Monoid ((<>))
 import qualified Data.Bson as Bson
 import qualified Data.Text as T
 import qualified Database.SQLite.Simple as SQL
+import qualified Database.SQLite.Simple.ToField as SQL
 
 collectionName :: T.Text
 collectionName =
@@ -39,6 +40,12 @@ data AppAuth = AppAuth
 
 instance SQL.FromRow AppAuth where
     fromRow = AppAuth <$> SQL.field <*> SQL.field
+
+instance SQL.ToRow AppAuth where
+    toRow (AppAuth a b) =
+        [ SQL.toField a
+        , SQL.toField b
+        ]
 
 instance FromJSON AppAuth where
     parseJSON = withObject "AppAuth" $ \v ->

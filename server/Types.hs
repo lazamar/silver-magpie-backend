@@ -6,7 +6,7 @@
 
 module Types where
 
-import Control.Monad.Database (Collection (..), Database (..), MonadDB, Target (..))
+import Control.Monad.Database (Collection (..), Database (..), MonadDB, Target (..), ToValue)
 import Control.Monad.Database.SQLite (MonadSQL, MonadSQLT)
 import Control.Monad.Error.Class (MonadError)
 import Control.Monad.Except (ExceptT (..))
@@ -49,7 +49,12 @@ instance ToJSON InfoMsg
 
 type DBActionRunner m = (forall a. Action m a -> m a)
 
-type HandlerM m = (MonadDB m , MonadIO m , MonadError ServerError m)
+type HandlerM m =
+    ( MonadDB m
+    , MonadIO m
+    , MonadError ServerError m
+    , ToValue m String
+    )
 
 type Stack = MonadSQLT (ExceptT ServerError IO)
 
