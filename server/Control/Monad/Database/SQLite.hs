@@ -23,9 +23,12 @@ import Control.Monad.Trans.Class (MonadTrans, lift)
 import Data.List (intercalate)
 import Data.Maybe (listToMaybe)
 import Data.String (fromString)
-import Database.SQLite.Simple (FromRow, NamedParam, Query, SQLData, ToRow)
+import Data.Text (Text)
+import Database.SQLite.Simple (FromRow, NamedParam, Query, SQLData, ToRow (toRow))
+import Database.SQLite.Simple.ToField (ToField)
 import qualified Control.Monad.Database as DB
 import qualified Data.Bson as Bson
+import qualified Data.Text as T
 import qualified Data.Text as Text
 import qualified Database.MongoDB as Mongo
 import qualified Database.SQLite.Simple as SQL
@@ -79,20 +82,6 @@ instance (Monad m , MonadReader DBState m , MonadMask m , MonadIO m , MonadSQL m
                     commit = liftIO $ SQL.execute_ conn "COMMIT TRANSACTION"
                     rollback = liftIO $ SQL.execute_ conn "ROLLBACK TRANSACTION"
 
-newtype MonadSQLT m a = MonadSQLT (ReaderT DBState m a)
-    deriving newtype (Functor , Applicative , Monad , MonadIO , MonadReader DBState)
-
-deriving newtype instance (MonadThrow m) => MonadThrow (MonadSQLT m)
-
-deriving newtype instance (MonadCatch m) => MonadCatch (MonadSQLT m)
-
-deriving newtype instance (MonadMask m) => MonadMask (MonadSQLT m)
-
-deriving newtype instance (MonadError e m) => MonadError e (MonadSQLT m)
-
-instance MonadTrans MonadSQLT where
-    lift = MonadSQLT . lift
-
 write
     :: (MonadIO m , MonadMask m , MonadReader DBState m)
     => (SQL.Connection -> m a)
@@ -111,59 +100,77 @@ withMVar' m act =
         liftIO (putMVar m a)
         return b
 
+newtype MonadSQLT m a = MonadSQLT (ReaderT DBState m a)
+    deriving newtype (Functor , Applicative , Monad , MonadIO , MonadReader DBState)
+
+deriving newtype instance (MonadThrow m) => MonadThrow (MonadSQLT m)
+
+deriving newtype instance (MonadCatch m) => MonadCatch (MonadSQLT m)
+
+deriving newtype instance (MonadMask m) => MonadMask (MonadSQLT m)
+
+deriving newtype instance (MonadError e m) => MonadError e (MonadSQLT m)
+
+instance MonadTrans MonadSQLT where
+    lift = MonadSQLT . lift
+
 instance forall m. (MonadMask m , MonadIO m) => DB.MonadDB (MonadSQLT m) where
-    type Record (MonadSQLT m) = [SQLData]
-    type Value (MonadSQLT m) = SQLData
+    type ToRecord (MonadSQLT m) a = ToRow a
+    type FromRecord (MonadSQLT m) a = FromRow a
+    type ToValue (MonadSQLT m) a = ToField a
 
     store (DB.Target _ (DB.Collection col)) = \case
-        DB.Insert val -> do
-            let record = DB.toRecord @(MonadSQLT m) val
+        DB.Insert record -> do
             execute
-                (fromString $ "INSERT OR REPLACE INTO " <> col <> "VALUES (" <> queryRep record <> ")")
+                (toQuery $ "INSERT OR REPLACE INTO " <> col <> "VALUES (" <> queryRep record <> ")")
                 record
-        DB.Update q val -> do
+        DB.Update q record -> do
             -- check whether the data in q is primary key, if not throw not error
-            let record = DB.toRecord @(MonadSQLT m) val
             execute
-                (fromString $ "INSERT OR REPLACE INTO " <> col <> "VALUES (" <> queryRep record <> ")")
+                (toQuery $ "INSERT OR REPLACE INTO " <> col <> "VALUES (" <> queryRep record <> ")")
                 record
 
     retrieveOne (DB.Target _ (DB.Collection col)) fields = do
         let vars = zip varNames fields
             q =
-                fromString $
-                    unwords
+                toQuery $
+                    T.unwords
                         [ "SELECT * FROM " <> col
-                        , "WHERE " <> unwords (map asFieldQuery vars)
+                        , "WHERE " <> T.unwords (map asFieldQuery vars)
                         , "LIMIT 1"
                         ]
 
         records <- queryNamed q (map asNamedParam vars)
-        return $ DB.fromRecord @(MonadSQLT m) <$> listToMaybe records
+        return $ listToMaybe records
 
     delete (DB.Target _ (DB.Collection col)) = \case
         DB.DeleteMany fields -> do
             let vars = zip varNames fields
                 q =
-                    fromString $
-                        unwords
+                    toQuery $
+                        T.unwords
                             [ "DELETE FROM " <> col
-                            , "WHERE " <> unwords (map asFieldQuery vars)
+                            , "WHERE " <> T.unwords (map asFieldQuery vars)
                             ]
             executeNamed q (map asNamedParam vars)
 
-queryRep :: [SQLData] -> String
-queryRep xs = intercalate "," $ replicate (length xs) "?"
+queryRep :: ToRow a => a -> Text
+queryRep x = T.intercalate "," $ replicate fieldCount "?"
+    where
+        fieldCount = length $ toRow x
 
-asFieldQuery :: (VarName , DB.FieldValue m) -> String
+asFieldQuery :: (VarName , DB.FieldValue m) -> Text
 asFieldQuery (VarName varName , DB.FieldValue field _) = field <> " = " <> varName
 
 asNamedParam :: forall m. (VarName , DB.FieldValue (MonadSQLT m)) -> NamedParam
 asNamedParam (VarName varName , DB.FieldValue _ val) =
-    Text.pack varName SQL.:= DB.toValue @(MonadSQLT m) val
+    varName SQL.:= val
 
-newtype VarName = VarName String
+newtype VarName = VarName Text
 
 -- | Placeholder names for searches
 varNames :: [VarName]
-varNames = [VarName $ ":" <> pure letter | letter <- ['a' .. 'z']]
+varNames = [VarName $ T.pack $ ":" <> pure letter | letter <- ['a' .. 'z']]
+
+toQuery :: Text -> Query
+toQuery = fromString . T.unpack

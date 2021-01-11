@@ -1,13 +1,14 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE AllowAmbiguousTypes #-}
 
 module Control.Monad.Database
     ( FromRecord (..),
       ToRecord (..),
-      IsValue (..),
+      ToValue (..),
       MonadDB (..),
       Target (..),
       Collection (..),
@@ -15,9 +16,12 @@ module Control.Monad.Database
       FieldValue (..),
       Delete (..),
       Insert (..),
-      (=:)
+      (=:),
     )
 where
+
+import Data.Kind (Constraint)
+import Data.Text (Text)
 
 -- | A simple monad to abstract over the database implementation.
 --
@@ -28,41 +32,30 @@ where
 -- in a one to many relationship.
 --
 --    database -> collection -> record -> field
-
 class MonadDB m where
-    type Record m :: * -- ^ A way to represent data in a collection
-    type Value m :: * -- ^ A way to represent attributes of data in a collection
+    type ToRecord m a :: Constraint
+    type FromRecord m a :: Constraint
+    type ToValue m a :: Constraint
     store :: ToRecord m a => Target -> Insert m a -> m ()
     retrieveOne :: FromRecord m a => Target -> [FieldValue m] -> m (Maybe a)
     delete :: Target -> Delete m -> m ()
-
--- | Parse value from a database collection
-class FromRecord m a where
-    fromRecord :: Record m -> a
-
--- | Transform the value into something the database can store
-class ToRecord m a where
-    toRecord :: a -> Record m
-
--- | A type that represents attributes of a collection's content
-class IsValue m a where
-    toValue :: a -> Value m
 
 -- The target of a database operation
 data Target = Target Database Collection
 
 -- | A database is a group of collections
-newtype Database = Database String
+newtype Database = Database Text
 
 -- | A collection of records
-newtype Collection = Collection String
+newtype Collection = Collection Text
 
 -- | Label and content of a field
 data FieldValue m where
-    FieldValue :: IsValue m a => String -> a -> FieldValue m
+    FieldValue :: ToValue m a => Text -> a -> FieldValue m
 
 infix 0 =:
-(=:) :: IsValue m a => String -> a -> FieldValue m
+
+(=:) :: ToValue m a => Text -> a -> FieldValue m
 (=:) = FieldValue
 
 data Insert m a
