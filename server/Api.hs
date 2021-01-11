@@ -14,6 +14,7 @@ import Data.Aeson (Value)
 import Data.Text as T
 import Data.Text.Encoding (encodeUtf8)
 import MongoTypes.AppAuth (AppAuth)
+import MongoTypes.UserDetails (UserDetails)
 import Network.HTTP.Client (Manager)
 import Servant
     ( Delete,
@@ -112,13 +113,14 @@ type Api =
 type M m =
     ( HandlerM m
     , DB.ToRecord m AppAuth
+    , DB.ToRecord m UserDetails
     )
 
 apiServer :: M m => EnvironmentVariables -> DBActionRunner m -> Manager -> ServerT Api m
 apiServer env runDbAction manager =
     let oauth = twitterOAuth env
      in Routes.SignIn.get oauth manager
-            :<|> Routes.SaveCredentials.get oauth runDbAction manager
+            :<|> Routes.SaveCredentials.get oauth manager
             :<|> Routes.AppGetAccess.get oauth manager
             :<|> Routes.AppRevokeAccess.delete runDbAction
             :<|> Routes.Home.get oauth manager

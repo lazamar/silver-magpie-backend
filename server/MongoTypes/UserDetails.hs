@@ -16,6 +16,7 @@ import Data.Bson (Field ((:=)), Value (String))
 import qualified Data.Bson as Bson
 import qualified Data.Text as T
 import qualified Database.SQLite.Simple as SQL
+import qualified Database.SQLite.Simple.ToField as SQL
 
 data UserDetails = UserDetails
     { oauthToken :: String
@@ -34,6 +35,15 @@ instance SQL.FromRow UserDetails where
             <*> SQL.field
             <*> SQL.field
             <*> SQL.field
+
+instance SQL.ToRow UserDetails where
+    toRow (UserDetails a b c d e) =
+        [ SQL.toField a
+        , SQL.toField b
+        , SQL.toField c
+        , SQL.toField d
+        , SQL.toField e
+        ]
 
 collectionName :: T.Text
 collectionName = "credentials"

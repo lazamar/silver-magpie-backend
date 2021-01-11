@@ -30,12 +30,14 @@ import Servant
       errHeaders,
       throwError,
     )
-import Types (DBActionRunner, HandlerM, InfoMsg)
+import Types (DBActionRunner, HandlerM, InfoMsg, targetCollection)
 import Web.Authenticate.OAuth (unCredential)
+import qualified Control.Monad.Database as DB
 import qualified Data.Bson as Bson
 import qualified Data.ByteString.Char8 as ByteString
 import qualified Data.ByteString.Lazy.Char8 as LByteString
 import qualified Database.MongoDB.Query as Mongo
+import qualified MongoTypes.UserDetails as UserDetails
 import qualified Web.Authenticate.OAuth as OAuth
 
 {-
@@ -43,10 +45,10 @@ import qualified Web.Authenticate.OAuth as OAuth
     Here we save his authorisation data.
 -}
 
-get :: HandlerM m => OAuth.OAuth -> DBActionRunner m -> Manager -> Maybe String -> Maybe String -> m InfoMsg
-get _ _ _ Nothing _ = throwError err400
-get _ _ _ _ Nothing = throwError err400
-get oauth runDBAction manager (Just requestToken) (Just requestVerifier) =
+get :: (HandlerM m , DB.ToRecord m UserDetails) => OAuth.OAuth -> Manager -> Maybe String -> Maybe String -> m InfoMsg
+get _ _ Nothing _ = throwError err400
+get _ _ _ Nothing = throwError err400
+get oauth manager (Just requestToken) (Just requestVerifier) =
     do
         eitherCredentials <- liftIO $ getAccessToken manager oauth requestToken requestVerifier
         let eitherDetails = eitherCredentials >>= toUserDetails requestToken
@@ -55,9 +57,7 @@ get oauth runDBAction manager (Just requestToken) (Just requestVerifier) =
         handleDetails (Left err) =
             throwError $ err500 {errBody = LByteString.pack err}
         handleDetails (Right userDetails) =
-            do
-                _ <- runDBAction $ saveUserDetails userDetails
-                redirectTo "./thank-you.html"
+            saveUserDetails userDetails >> redirectTo "./thank-you.html"
 
 getAccessToken :: Manager -> OAuth.OAuth -> String -> String -> IO (Either String OAuth.Credential)
 getAccessToken manager oauth requestToken requestVerifier =
@@ -100,11 +100,11 @@ removeQuotes :: [a] -> [a]
 removeQuotes v =
     drop 1 $ take (length v - 1) v
 
-saveUserDetails :: MonadIO m => UserDetails -> Action m Bson.Value
+saveUserDetails :: (HandlerM m , DB.ToRecord m UserDetails) => UserDetails -> m ()
 saveUserDetails userDetails =
-    let collection = "credentials"
-        document = toBSON userDetails
-     in Mongo.insert collection document
+    DB.store
+        (targetCollection UserDetails.collectionName)
+        (DB.Insert userDetails)
 
 redirectTo :: MonadError ServerError m => String -> m a
 redirectTo url =
