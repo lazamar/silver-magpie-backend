@@ -44,8 +44,8 @@ import Types
       HandlerM,
     )
 import qualified Data.Text as T
-import qualified MongoTypes.AppAuth as AppAuth
-import qualified MongoTypes.UserDetails as UserDetails
+import qualified Types.AppAuth as AppAuth
+import qualified Types.UserDetails as UserDetails
 
 -------------------------------------------------------------------------------
 --                               App

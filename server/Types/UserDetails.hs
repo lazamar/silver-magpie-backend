@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module MongoTypes.UserDetails where
+module Types.UserDetails where
 
 import Data.Aeson.Types
     ( FromJSON,

@@ -8,7 +8,7 @@ module Routes.Retweet (post, delete) where
 import Control.Monad.IO.Class (liftIO)
 import Data.Aeson (Value)
 import qualified Data.ByteString.Lazy.Char8 as LB
-import MongoTypes.UserDetails (UserDetails)
+import Types.UserDetails (UserDetails)
 import Network.HTTP.Client (Manager)
 import Servant (Handler, err500, errBody, throwError)
 import Twitter (postRetweet)

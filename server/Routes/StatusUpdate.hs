@@ -11,7 +11,7 @@ import Data.Aeson (Value)
 import Data.Aeson.Types (FromJSON, ToJSON)
 import qualified Data.ByteString.Lazy.Char8 as LB
 import GHC.Generics (Generic)
-import MongoTypes.UserDetails (UserDetails)
+import Types.UserDetails (UserDetails)
 import Network.HTTP.Client (Manager)
 import Servant (Handler, err500, errBody, throwError)
 import Twitter (postStatusUpdate)

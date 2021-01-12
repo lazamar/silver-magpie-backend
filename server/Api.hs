@@ -13,8 +13,8 @@ import Control.Monad.Database (MonadDB)
 import Data.Aeson (Value)
 import Data.Text as T
 import Data.Text.Encoding (encodeUtf8)
-import MongoTypes.AppAuth (AppAuth)
-import MongoTypes.UserDetails (UserDetails)
+import Types.AppAuth (AppAuth)
+import Types.UserDetails (UserDetails)
 import Network.HTTP.Client (Manager)
 import Servant
     ( Delete,
