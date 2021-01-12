@@ -43,7 +43,7 @@ import qualified Web.Authenticate.OAuth as OAuth
     Here we save his authorisation data.
 -}
 
-get :: (HandlerM m , DB.ToRecord m UserDetails) => OAuth.OAuth -> Manager -> Maybe String -> Maybe String -> m InfoMsg
+get :: (HandlerM m) => OAuth.OAuth -> Manager -> Maybe String -> Maybe String -> m InfoMsg
 get _ _ Nothing _ = throwError err400
 get _ _ _ Nothing = throwError err400
 get oauth manager (Just requestToken) (Just requestVerifier) =
@@ -98,7 +98,7 @@ removeQuotes :: [a] -> [a]
 removeQuotes v =
     drop 1 $ take (length v - 1) v
 
-saveUserDetails :: (HandlerM m , DB.ToRecord m UserDetails) => UserDetails -> m ()
+saveUserDetails :: (HandlerM m) => UserDetails -> m ()
 saveUserDetails userDetails =
     DB.store
         (targetCollection UserDetails.collectionName)

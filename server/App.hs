@@ -43,8 +43,8 @@ import Types
     ( EnvironmentVariables (dbName , dbPassword , dbPort , dbUrl , dbUsername , port),
       HandlerM,
     )
-import qualified Data.Text as T
 import qualified Data.AppAuth as AppAuth
+import qualified Data.Text as T
 import qualified Data.UserDetails as UserDetails
 
 -------------------------------------------------------------------------------
@@ -75,21 +75,6 @@ stackRunner _ = S $ Handler . runMonadSQL "./database/DB.sql"
             [ UserDetails.collectionName
             , AppAuth.collectionName
             ]
-
---connectToMongo :: EnvironmentVariables -> IO Pipe
---connectToMongo env =
---connect $
---Host (T.unpack $ dbUrl env) $
---PortNumber (read $ show $ dbPort env)
-
--- After we generate a Pipe, we need to authenticate that pipe for it to work
--- authenticateConnection :: HandlerM m => EnvironmentVariables -> DBActionRunner m -> m Bool
--- authenticateConnection env runDbAction =
---     runDbAction $ auth (dbUsername env) (dbPassword env)
-
--- createActionRunner :: Pipe -> Query.Database -> DBActionRunner m
--- createActionRunner pipe database =
---     access pipe master database
 
 app
     :: ()

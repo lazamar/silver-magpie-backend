@@ -11,9 +11,9 @@ module Api (Api, apiServer) where
 import Authenticate (Authenticate)
 import Control.Monad.Database (MonadDB)
 import Data.Aeson (Value)
+import Data.AppAuth (AppAuth)
 import Data.Text as T
 import Data.Text.Encoding (encodeUtf8)
-import Data.AppAuth (AppAuth)
 import Data.UserDetails (UserDetails)
 import Network.HTTP.Client (Manager)
 import Servant
@@ -109,13 +109,7 @@ type Api =
 --                               Handlers
 -------------------------------------------------------------------------------
 
-type M m =
-    ( HandlerM m
-    , DB.ToRecord m AppAuth
-    , DB.ToRecord m UserDetails
-    )
-
-apiServer :: M m => EnvironmentVariables -> Manager -> ServerT Api m
+apiServer :: HandlerM m => EnvironmentVariables -> Manager -> ServerT Api m
 apiServer env manager =
     let oauth = twitterOAuth env
      in Routes.SignIn.get oauth manager

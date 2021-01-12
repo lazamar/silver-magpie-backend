@@ -6,13 +6,23 @@
 
 module Types where
 
-import Control.Monad.Database (Collection (..), Database (..), MonadDB, Target (..), ToValue)
+import Control.Monad.Database
+    ( Collection (..),
+      Database (..),
+      FromRecord,
+      MonadDB,
+      Target (..),
+      ToRecord,
+      ToValue,
+    )
 import Control.Monad.Database.SQLite (MonadSQL, MonadSQLT)
 import Control.Monad.Error.Class (MonadError)
 import Control.Monad.Except (ExceptT (..))
 import Control.Monad.IO.Class (MonadIO)
 import Data.Aeson.Types (FromJSON, ToJSON)
+import Data.AppAuth (AppAuth)
 import Data.Text (Text)
+import Data.UserDetails (UserDetails)
 import GHC.Generics (Generic)
 import Servant.Server (ServerError)
 
@@ -52,6 +62,10 @@ type HandlerM m =
     , MonadError ServerError m
     , ToValue m String
     , ToValue m Text
+    , FromRecord m AppAuth
+    , FromRecord m UserDetails
+    , ToRecord m UserDetails
+    , ToRecord m AppAuth
     )
 
 type Stack = MonadSQLT (ExceptT ServerError IO)

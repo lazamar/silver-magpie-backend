@@ -10,9 +10,9 @@
 module Authenticate (authenticate, authContext, Authenticate, AuthContext) where
 
 import Control.Monad.IO.Class (MonadIO, liftIO)
+import Data.AppAuth (AppAuth)
 import Data.Bson (Document, (=:))
 import Data.Either.Combinators (rightToMaybe)
-import Data.AppAuth (AppAuth)
 import Data.UserDetails (UserDetails)
 import Network.Wai (Request, requestHeaders)
 import Servant
@@ -30,9 +30,9 @@ import Servant.Server.Experimental.Auth
     )
 import Types (HandlerM, targetCollection)
 import qualified Control.Monad.Database as DB
+import qualified Data.AppAuth as AppAuth
 import qualified Data.ByteString.Char8 as B
 import qualified Data.ByteString.Lazy.Char8 as LB
-import qualified Data.AppAuth as AppAuth
 import qualified Data.UserDetails as UserDetails
 
 -- Name of my authentication scheme. I could have multiple different ones
@@ -46,7 +46,6 @@ type AuthContext = '[AuthHandler Request UserDetails]
 type M m =
     ( HandlerM m
     , DB.FromRecord m AppAuth
-    , DB.ToValue m String
     , DB.FromRecord m UserDetails
     )
 

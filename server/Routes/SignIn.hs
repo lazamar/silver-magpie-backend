@@ -18,12 +18,7 @@ import qualified Control.Monad.Database as DB
 import qualified Data.AppAuth as AppAuth
 import qualified Data.ByteString.Char8 as ByteString
 
-type M m =
-    ( HandlerM m
-    , DB.ToRecord m AppAuth
-    )
-
-get :: M m => OAuth.OAuth -> Manager -> Maybe String -> m AppAuth
+get :: HandlerM m => OAuth.OAuth -> Manager -> Maybe String -> m AppAuth
 get oauth manager mAppSessionId =
     let authorise Nothing _ =
             throwError $
@@ -53,7 +48,7 @@ removeQuotes :: [a] -> [a]
 removeQuotes v =
     drop 1 $ take (length v - 1) v
 
-saveAppAuthorisation :: M m => AppAuth -> m ()
+saveAppAuthorisation :: HandlerM m => AppAuth -> m ()
 saveAppAuthorisation auth =
     let document = AppAuth (appSessionId auth) (accessRequestToken auth)
         selector = ["app_session_id" DB.=: appSessionId auth]
