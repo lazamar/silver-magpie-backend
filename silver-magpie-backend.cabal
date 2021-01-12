@@ -59,8 +59,8 @@ executable silver-magpie-backend
     Control.Monad.Database
     Control.Monad.Database.SQLite
     Env
-    Types.AppAuth
-    Types.UserDetails
+    Data.AppAuth
+    Data.UserDetails
     Routes.AppGetAccess
     Routes.AppRevokeAccess
     Routes.Favorite

@@ -7,16 +7,16 @@ module Routes.SignIn (get) where
 
 import Control.Monad.Except (MonadError)
 import Control.Monad.IO.Class (MonadIO, liftIO)
+import Data.AppAuth (AppAuth (AppAuth , accessRequestToken , appSessionId))
 import Data.Bson ((=:))
-import Types.AppAuth (AppAuth (AppAuth , accessRequestToken , appSessionId))
 import Network.HTTP.Client (Manager)
 import Network.HTTP.Types.Header (hLocation)
 import Servant (Handler, ServerError, err301, err400, err500, errBody, errHeaders, throwError)
 import Types (HandlerM, targetCollection)
 import Web.Authenticate.OAuth as OAuth
 import qualified Control.Monad.Database as DB
+import qualified Data.AppAuth as AppAuth
 import qualified Data.ByteString.Char8 as ByteString
-import qualified Types.AppAuth as AppAuth
 
 type M m =
     ( HandlerM m

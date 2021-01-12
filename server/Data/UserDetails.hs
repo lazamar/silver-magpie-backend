@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Types.UserDetails where
+module Data.UserDetails where
 
 import Data.Aeson.Types
     ( FromJSON,

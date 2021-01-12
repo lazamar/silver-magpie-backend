@@ -7,7 +7,7 @@ module Routes.Home (get) where
 
 import Control.Monad.IO.Class (liftIO)
 import qualified Data.ByteString.Lazy.Char8 as LB
-import Types.UserDetails (UserDetails)
+import Data.UserDetails (UserDetails)
 import Network.HTTP.Client (Manager)
 import Servant (Handler, err500, errBody, throwError)
 import Twitter (Timeline, WhichTimeline (HomeTimeline), fetchTimeline)

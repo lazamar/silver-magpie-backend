@@ -23,7 +23,7 @@ import           Data.List                  (intercalate)
 import           Data.Maybe                 (fromMaybe)
 import           Debug.Trace                (traceShowId)
 import           GHC.Generics               (Generic)
-import           Types.UserDetails     (UserDetails, oauthToken,
+import           Data.UserDetails     (UserDetails, oauthToken,
                                              oauthTokenSecret)
 import           Network.HTTP.Client        (Manager, Response, httpLbs, method,
                                              parseRequest, queryString,

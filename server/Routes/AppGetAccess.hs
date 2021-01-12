@@ -10,8 +10,8 @@ import Data.Aeson (Object, decode, (.:))
 import Data.Aeson.Types (Parser, ToJSON, parseMaybe)
 import qualified Data.ByteString.Lazy.Char8 as LByteString
 import GHC.Generics (Generic)
-import Types.UserDetails (UserDetails)
-import qualified Types.UserDetails as UserDetails
+import Data.UserDetails (UserDetails)
+import qualified Data.UserDetails as UserDetails
 import Network.HTTP.Client (Manager, responseBody)
 import Servant (err401, err500, errBody, throwError)
 import qualified Twitter

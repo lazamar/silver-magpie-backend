@@ -7,7 +7,7 @@ module Routes.SaveCredentials (get) where
 import Control.Monad.Except (MonadError)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.Either.Combinators (mapLeft)
-import Types.UserDetails
+import Data.UserDetails
     ( UserDetails (UserDetails),
       accessRequestToken,
       oauthToken,
@@ -35,7 +35,7 @@ import qualified Control.Monad.Database as DB
 import qualified Data.Bson as Bson
 import qualified Data.ByteString.Char8 as ByteString
 import qualified Data.ByteString.Lazy.Char8 as LByteString
-import qualified Types.UserDetails as UserDetails
+import qualified Data.UserDetails as UserDetails
 import qualified Web.Authenticate.OAuth as OAuth
 
 {-

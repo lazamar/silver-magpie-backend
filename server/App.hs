@@ -44,8 +44,8 @@ import Types
       HandlerM,
     )
 import qualified Data.Text as T
-import qualified Types.AppAuth as AppAuth
-import qualified Types.UserDetails as UserDetails
+import qualified Data.AppAuth as AppAuth
+import qualified Data.UserDetails as UserDetails
 
 -------------------------------------------------------------------------------
 --                               App

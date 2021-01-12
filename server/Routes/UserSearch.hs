@@ -8,7 +8,7 @@ module Routes.UserSearch (get) where
 import Control.Monad.IO.Class (liftIO)
 import Data.Aeson (Value)
 import qualified Data.ByteString.Lazy.Char8 as LB
-import Types.UserDetails (UserDetails)
+import Data.UserDetails (UserDetails)
 import Network.HTTP.Client (Manager)
 import Servant (err500, errBody, throwError)
 import Twitter (searchUser)

@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Types.AppAuth where
+module Data.AppAuth where
 
 import Data.Aeson.Types
     ( FromJSON,

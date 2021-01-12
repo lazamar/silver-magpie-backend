@@ -5,12 +5,12 @@ module Routes.AppRevokeAccess (delete) where
 
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.Text as T
-import Types.UserDetails (UserDetails)
+import Data.UserDetails (UserDetails)
 import Servant (Handler)
 import Types (HandlerM, InfoMsg (InfoMsg), targetCollection)
 import qualified Control.Monad.Database as DB
-import qualified Types.AppAuth as AppAuth
-import qualified Types.UserDetails as UserDetails
+import qualified Data.AppAuth as AppAuth
+import qualified Data.UserDetails as UserDetails
 
 delete :: HandlerM m => UserDetails -> m InfoMsg
 delete userDetails = do
