@@ -4,6 +4,9 @@ FROM haskell:8.6.5
 COPY ./ /home/app/
 WORKDIR /home/app
 
+RUN apt-get update
+RUN apt-get install -y sqlite3 libsqlite3-dev
+
 # Install all dependencies and build project
 RUN stack build
 
