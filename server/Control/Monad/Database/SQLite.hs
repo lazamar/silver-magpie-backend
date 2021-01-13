@@ -122,12 +122,12 @@ instance forall m. (MonadMask m , MonadIO m) => DB.MonadDB (MonadSQLT m) where
     store (DB.Target _ (DB.Collection col)) = \case
         DB.Insert record -> do
             execute
-                (toQuery $ "INSERT OR REPLACE INTO " <> col <> "VALUES (" <> queryRep record <> ")")
+                (toQuery $ "INSERT OR REPLACE INTO " <> col <> " VALUES (" <> queryRep record <> ")")
                 record
         DB.Update q record -> do
             -- check whether the data in q is primary key, if not throw not error
             execute
-                (toQuery $ "INSERT OR REPLACE INTO " <> col <> "VALUES (" <> queryRep record <> ")")
+                (toQuery $ "INSERT OR REPLACE INTO " <> col <> " VALUES (" <> queryRep record <> ")")
                 record
 
     retrieveOne (DB.Target _ (DB.Collection col)) fields = do

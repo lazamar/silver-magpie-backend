@@ -107,7 +107,6 @@ databaseRunner _ = S $ \runServer -> Handler $
                     , ", " <> UserDetails.keyUserId <> "             TEXT NOT NULL"
                     , ", " <> UserDetails.keyScreenName <> "         TEXT NOT NULL"
                     , ", " <> UserDetails.keyAccessRequestToken <> " TEXT NOT NULL"
-                    , ", PRIMARY KEY (CHANNEL, COMMIT_HASH, REPRESENTS_DATE)"
                     , ")"
                     ]
         asQuery = fromString . T.unpack . T.unwords

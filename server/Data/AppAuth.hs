@@ -22,7 +22,7 @@ import qualified Database.SQLite.Simple.ToField as SQL
 
 collectionName :: T.Text
 collectionName =
-    "app-authorisation"
+    "app_authorisation"
 
 keyAppSessionId :: T.Text
 keyAppSessionId =
