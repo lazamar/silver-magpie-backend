@@ -72,7 +72,7 @@ newtype DBRunner m n = S (forall a. m a -> n a)
 -- TODO database name must be set by the environment variables
 databaseRunner :: EnvironmentVariables -> DBRunner Stack Handler
 databaseRunner _ = S $ \runServer -> Handler $
-    runMonadSQL "./DATABASE.sql" $ do
+    runMonadSQL "./database/DATABASE.sql" $ do
         prepareDatabase
         runServer
     where
